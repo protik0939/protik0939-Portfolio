@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { BookOpenText, BriefcaseBusiness, Code2, Languages, Link2, Share2, Terminal } from "lucide-react";
+import { BookOpenText, BriefcaseBusiness, Code2, Languages } from "lucide-react";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
+import Link from "next/link";
+import { SlSocialGithub, SlSocialLinkedin } from "react-icons/sl";
+import { FaXTwitter } from "react-icons/fa6";
 
 type HeroSiteConfig = {
   heroHelloEn: string;
@@ -95,7 +98,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
     : `Backed by live data: ${heroStats[0].value}+ projects, ${heroStats[2].value}+ languages, and ${heroStats[1].value}+ production-ready skills.`;
 
   return (
-    <section className="relative flex min-h-230.25 items-center overflow-hidden px-8 md:px-20" id="home">
+    <section className="relative flex min-h-230.25 items-center overflow-hidden px-8 md:px-20 sm:pt-0 pt-6" id="home">
       <div className="absolute top-1/4 -left-20 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute right-0 bottom-1/4 -mr-20 h-96 w-96 rounded-full bg-secondary/10 blur-[120px]" />
 
@@ -111,50 +114,50 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
             <p className="mb-8 max-w-xl text-sm leading-relaxed text-on-surface-variant">{hiringSnapshot}</p>
 
             <div className="flex flex-wrap items-center gap-4">
-              <a
+              <Link
                 className="rounded-full bg-linear-to-r from-primary to-primary-container px-8 py-4 font-bold text-white shadow-[0_0_20px_rgba(131,66,244,0.3)] transition-all hover:shadow-[0_0_30px_rgba(131,66,244,0.5)]"
                 href="#projects"
               >
                 {t("hero.primaryCta", "View Projects")}
-              </a>
-              <a
+              </Link>
+              <Link
                 className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
                 href={cvHref}
                 target={cvTarget}
                 rel={cvTarget ? "noreferrer" : undefined}
               >
                 {t("hero.secondaryCta", "Download Resume")}
-              </a>
+              </Link>
             </div>
 
             <div className="mt-12 flex gap-6">
-              <a
+              <Link
                 className="flex h-12 w-12 items-center justify-center rounded-full border border-white/5 bg-surface-container-low text-on-surface-variant transition-all hover:border-primary/50 hover:text-primary"
-                href="https://github.com"
+                href="https://github.com/protik0939"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="GitHub"
               >
-                <Terminal className="h-5 w-5" />
-              </a>
-              <a
+                <SlSocialGithub className="h-5 w-5" />
+              </Link>
+              <Link
                 className="flex h-12 w-12 items-center justify-center rounded-full border border-white/5 bg-surface-container-low text-on-surface-variant transition-all hover:border-secondary/50 hover:text-secondary"
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/in/protik0939/"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="LinkedIn"
               >
-                <Link2 className="h-5 w-5" />
-              </a>
-              <a
+                <SlSocialLinkedin className="h-5 w-5" />
+              </Link>
+              <Link
                 className="flex h-12 w-12 items-center justify-center rounded-full border border-white/5 bg-surface-container-low text-on-surface-variant transition-all hover:border-primary/50 hover:text-primary"
-                href="https://x.com"
+                href="https://x.com/protik0939"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="X"
               >
-                <Share2 className="h-5 w-5" />
-              </a>
+                <FaXTwitter className="h-5 w-5" />
+              </Link>
             </div>
 
             <div className="mt-10 grid grid-cols-2 gap-3 lg:max-w-xl">
@@ -183,7 +186,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
             <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-2xl" />
             <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/25 blur-[90px] animate-[pulse_3.6s_ease-in-out_infinite]" />
             <div className="absolute top-1/2 left-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/20 blur-[70px] animate-[pulse_4.8s_ease-in-out_infinite]" />
-            <div className="glass-panel relative aspect-4/5 overflow-hidden rounded-3xl p-4">
+            <div className="glass-panel relative aspect-4/5 overflow-hidden rounded-3xl p-4 mb-10">
               <Image
                 fill
                 priority
