@@ -1,26 +1,326 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0e0e0e;
+  --foreground: #e7e5e4;
+
+  --surface: #0e0e0e;
+  --tertiary-fixed-dim: #58e7ab;
+  --on-error-container: #ff97a3;
+  --inverse-surface: #fcf9f8;
+  --error: #fd6f85;
+  --primary-fixed: #ceb5ff;
+  --tertiary: #9bffce;
+  --error-dim: #c8475d;
+  --inverse-primary: #742fe5;
+  --on-primary-fixed: #340078;
+  --tertiary-container: #69f6b8;
+  --on-primary-fixed-variant: #5800c2;
+  --on-tertiary-container: #005a3c;
+  --on-primary-container: #ffffff;
+  --on-secondary-fixed: #004a41;
+  --on-surface-variant: #acabaa;
+  --secondary-container: #002c26;
+  --secondary-fixed-dim: #54eed8;
+  --tertiary-dim: #58e7ab;
+  --outline-variant: #484848;
+  --on-secondary-container: #00b8a5;
+  --primary-fixed-dim: #c2a4ff;
+  --surface-container-high: #1f2020;
+  --on-secondary-fixed-variant: #00695e;
+  --primary-dim: #8a4cfc;
+  --primary: #af88ff;
+  --outline: #767575;
+  --on-surface: #e7e5e4;
+  --secondary: #3cddc7;
+  --secondary-fixed: #65fde6;
+  --on-error: #490013;
+  --surface-bright: #2c2c2c;
+  --error-container: #8a1632;
+  --primary-container: #8342f4;
+  --on-primary: #2b0065;
+  --surface-dim: #0e0e0e;
+  --on-tertiary-fixed: #00452d;
+  --secondary-dim: #22cfba;
+  --on-background: #e7e5e4;
+  --on-tertiary-fixed-variant: #006544;
+  --surface-container: #191a1a;
+  --surface-variant: #262626;
+  --surface-container-low: #131313;
+  --on-secondary: #004941;
+  --inverse-on-surface: #565555;
+  --on-tertiary: #006443;
+  --surface-tint: #af88ff;
+  --surface-container-highest: #262626;
+  --surface-container-lowest: #000000;
+  --tertiary-fixed: #69f6b8;
+
+  --glass-panel-bg: rgb(38 38 38 / 0.4);
+  --glass-panel-border: rgb(255 255 255 / 0.1);
+}
+
+:root.light {
+  --background: #f7f8fc;
+  --foreground: #101828;
+
+  --surface: #f7f8fc;
+  --on-surface: #111827;
+  --on-surface-variant: #4b5563;
+  --surface-container-low: #ffffff;
+  --surface-container: #f3f5fb;
+  --surface-container-high: #edf0f8;
+  --surface-container-highest: #e6eaf4;
+  --surface-variant: #dfe5f2;
+  --outline-variant: #c2ccdf;
+  --outline: #8b98b3;
+  --primary: #6d28d9;
+  --primary-container: #7c3aed;
+  --on-primary-container: #ffffff;
+  --secondary: #0d9488;
+  --tertiary: #0f9f79;
+  --on-background: #111827;
+
+  --glass-panel-bg: rgb(255 255 255 / 0.62);
+  --glass-panel-border: rgb(79 70 229 / 0.14);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-tertiary-fixed-dim: var(--tertiary-fixed-dim);
+  --color-on-error-container: var(--on-error-container);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-error: var(--error);
+  --color-primary-fixed: var(--primary-fixed);
+  --color-tertiary: var(--tertiary);
+  --color-error-dim: var(--error-dim);
+  --color-inverse-primary: var(--inverse-primary);
+  --color-on-primary-fixed: var(--on-primary-fixed);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-primary-fixed-variant: var(--on-primary-fixed-variant);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-on-secondary-fixed: var(--on-secondary-fixed);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-secondary-container: var(--secondary-container);
+  --color-secondary-fixed-dim: var(--secondary-fixed-dim);
+  --color-tertiary-dim: var(--tertiary-dim);
+  --color-outline-variant: var(--outline-variant);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-primary-fixed-dim: var(--primary-fixed-dim);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-on-secondary-fixed-variant: var(--on-secondary-fixed-variant);
+  --color-primary-dim: var(--primary-dim);
+  --color-primary: var(--primary);
+  --color-outline: var(--outline);
+  --color-on-surface: var(--on-surface);
+  --color-secondary: var(--secondary);
+  --color-secondary-fixed: var(--secondary-fixed);
+  --color-on-error: var(--on-error);
+  --color-surface-bright: var(--surface-bright);
+  --color-error-container: var(--error-container);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary: var(--on-primary);
+  --color-surface-dim: var(--surface-dim);
+  --color-on-tertiary-fixed: var(--on-tertiary-fixed);
+  --color-secondary-dim: var(--secondary-dim);
+  --color-on-background: var(--on-background);
+  --color-on-tertiary-fixed-variant: var(--on-tertiary-fixed-variant);
+  --color-surface-container: var(--surface-container);
+  --color-surface-variant: var(--surface-variant);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-on-secondary: var(--on-secondary);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-surface-tint: var(--surface-tint);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-tertiary-fixed: var(--tertiary-fixed);
+
+  --font-headline: var(--font-poppins), var(--font-hind-siliguri), sans-serif;
+  --font-body: var(--font-poppins), var(--font-hind-siliguri), sans-serif;
+  --font-label: var(--font-poppins), var(--font-hind-siliguri), sans-serif;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins), var(--font-hind-siliguri), sans-serif;
+  transition: background-color 260ms ease, color 260ms ease;
+  overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Custom scrollbar for root page scroll */
+html {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--primary) 65%, var(--secondary) 35%) color-mix(in oklab, var(--surface-container-high) 80%, transparent 20%);
+}
+
+body {
+  overflow-y: visible;
+}
+
+html::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html::-webkit-scrollbar:horizontal {
+  height: 3px;
+}
+
+html::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html::-webkit-scrollbar-button:single-button:horizontal:decrement,
+html::-webkit-scrollbar-button:single-button:horizontal:increment,
+html::-webkit-scrollbar-button:horizontal:start:decrement,
+html::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html::-webkit-scrollbar-track {
+  background: color-mix(in oklab, var(--surface-container-high) 75%, transparent 25%);
+  border-radius: 999px;
+}
+
+html::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--surface-container-high) 75%, transparent 25%);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--primary-container), var(--secondary));
+}
+
+/* Prevent body from exposing a second scrollbar in Chromium/WebKit */
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar:horizontal {
+  height: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-button:single-button:horizontal:decrement,
+.custom-scrollbar::-webkit-scrollbar-button:single-button:horizontal:increment,
+.custom-scrollbar::-webkit-scrollbar-button:horizontal:start:decrement,
+.custom-scrollbar::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--primary) 70%, var(--secondary) 30%) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+  border: 0;
+}
+
+/* Lenis integration rules to avoid dual root/body scrollbar behavior */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+.glass-panel {
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--glass-panel-border);
+  border-left: 1px solid var(--glass-panel-border);
+}
+
+.text-gradient-primary {
+  background: linear-gradient(to right, #af88ff, #8342f4);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap {
+  width: 100%;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap text {
+  fill: var(--on-surface-variant);
+  font-size: 0.65rem;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap rect {
+  stroke: var(--surface-container-low);
+  stroke-width: 1;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap .color-empty {
+  fill: var(--surface-container-high);
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap .cf-level-1 {
+  fill: var(--primary);
+  fill-opacity: 0.25;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap .cf-level-2 {
+  fill: var(--primary);
+  fill-opacity: 0.45;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap .cf-level-3 {
+  fill: var(--secondary);
+  fill-opacity: 0.65;
+}
+
+.cf-heatmap-wrap .react-calendar-heatmap .cf-level-4 {
+  fill: var(--secondary);
+  fill-opacity: 0.9;
 }

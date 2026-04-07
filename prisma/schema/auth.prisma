@@ -1,0 +1,305 @@
+model Admin {
+	id                  String                     @id @default(cuid())
+	singletonKey        Int                        @unique @default(1) @map("singleton_key")
+	email               String                     @unique
+	passwordHash        String                     @map("password_hash")
+	fullName            String?                    @map("full_name")
+	isActive            Boolean                    @default(true) @map("is_active")
+	lastLoginAt         DateTime?                  @map("last_login_at")
+	failedLoginAttempts Int                        @default(0) @map("failed_login_attempts")
+	lockedUntil         DateTime?                  @map("locked_until")
+	createdAt           DateTime                   @default(now()) @map("created_at")
+	updatedAt           DateTime                   @updatedAt @map("updated_at")
+	loginOtps           AdminLoginOtp[]
+	sessions            AdminSession[]
+	educations          Education[]
+	skills              Skill[]
+	projects            Project[]
+	blogs               Blog[]
+	teamMembers         TeamMember[]
+	experiences         Experience[]
+	siteConfigs         SiteConfig[]
+	passwordResetTokens AdminPasswordResetToken[]
+
+	@@map("admins")
+}
+
+enum OtpPurpose {
+	LOGIN
+	PASSWORD_CHANGE
+}
+
+model AdminPasswordResetToken {
+	id         String    @id @default(cuid())
+	adminId    String    @map("admin_id")
+	tokenHash  String    @unique @map("token_hash")
+	expiresAt  DateTime  @map("expires_at")
+	usedAt     DateTime? @map("used_at")
+	createdAt  DateTime  @default(now()) @map("created_at")
+	updatedAt  DateTime  @updatedAt @map("updated_at")
+	admin      Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+	@@index([adminId])
+	@@map("admin_password_reset_tokens")
+}
+
+model AdminLoginOtp {
+	id        String    @id @default(cuid())
+	adminId   String    @map("admin_id")
+	otpHash   String    @map("otp_hash")
+	purpose   OtpPurpose @default(LOGIN)
+	attempts  Int       @default(0)
+	expiresAt DateTime  @map("expires_at")
+	usedAt    DateTime? @map("used_at")
+	createdAt DateTime  @default(now()) @map("created_at")
+	updatedAt DateTime  @updatedAt @map("updated_at")
+	admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+	@@index([adminId])
+	@@index([expiresAt])
+	@@map("admin_login_otps")
+}
+
+model AdminSession {
+	id        String    @id @default(cuid())
+	adminId   String    @map("admin_id")
+	tokenHash String    @unique @map("token_hash")
+	expiresAt DateTime  @map("expires_at")
+	revokedAt DateTime? @map("revoked_at")
+	createdAt DateTime  @default(now()) @map("created_at")
+	updatedAt DateTime  @updatedAt @map("updated_at")
+	admin     Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+	@@index([adminId])
+	@@index([expiresAt])
+	@@map("admin_sessions")
+}
+
+model SiteConfig {
+	id                    String   @id @default(cuid())
+	adminId               String   @map("admin_id")
+	singletonKey          Int      @unique @default(1) @map("singleton_key")
+	siteTitleEn           String   @map("site_title_en")
+	siteTitleBn           String   @map("site_title_bn")
+	siteDescriptionEn     String   @map("site_description_en")
+	siteDescriptionBn     String   @map("site_description_bn")
+	navHomeEn             String   @default("Home") @map("nav_home_en")
+	navHomeBn             String   @default("হোম") @map("nav_home_bn")
+	navAboutEn            String   @default("About") @map("nav_about_en")
+	navAboutBn            String   @default("পরিচিতি") @map("nav_about_bn")
+	navEducationEn        String   @default("Education") @map("nav_education_en")
+	navEducationBn        String   @default("শিক্ষা") @map("nav_education_bn")
+	navSkillsEn           String   @default("Skills") @map("nav_skills_en")
+	navSkillsBn           String   @default("দক্ষতা") @map("nav_skills_bn")
+	navProjectsEn         String   @default("Projects") @map("nav_projects_en")
+	navProjectsBn         String   @default("প্রজেক্ট") @map("nav_projects_bn")
+	navBlogsEn            String   @default("Blogs") @map("nav_blogs_en")
+	navBlogsBn            String   @default("ব্লগসমূহ") @map("nav_blogs_bn")
+	navContactEn          String   @default("Contact") @map("nav_contact_en")
+	navContactBn          String   @default("যোগাযোগ") @map("nav_contact_bn")
+	navCvEn               String   @default("CV") @map("nav_cv_en")
+	navCvBn               String   @default("সিভি") @map("nav_cv_bn")
+	logoLightUrl          String?  @map("logo_light_url")
+	logoDarkUrl           String?  @map("logo_dark_url")
+	heroHelloEn           String   @default("Hello!") @map("hero_hello_en")
+	heroHelloBn           String   @default("হ্যালো!") @map("hero_hello_bn")
+	heroIamEn             String   @default("I am") @map("hero_iam_en")
+	heroIamBn             String   @default("আমি") @map("hero_iam_bn")
+	heroFirstNameEn       String   @default("Sadat Alam") @map("hero_first_name_en")
+	heroFirstNameBn       String   @default("সাদাত আলম") @map("hero_first_name_bn")
+	heroLastNameEn        String   @default("Protik") @map("hero_last_name_en")
+	heroLastNameBn        String   @default("প্রতীক") @map("hero_last_name_bn")
+	heroDescriptionEn     String   @default("") @map("hero_description_en")
+	heroDescriptionBn     String   @default("") @map("hero_description_bn")
+	heroImageUrl          String?  @map("hero_image_url")
+	aboutDescriptionEn    String   @default("") @map("about_description_en")
+	aboutDescriptionBn    String   @default("") @map("about_description_bn")
+	aboutSecondaryDescriptionEn String @default("") @map("about_secondary_description_en")
+	aboutSecondaryDescriptionBn String @default("") @map("about_secondary_description_bn")
+	yearsExperience      Int      @default(5) @map("years_experience")
+	aboutImagePrimaryUrl String?  @map("about_image_primary_url")
+	aboutImageSecondaryUrl String? @map("about_image_secondary_url")
+	aboutImageTertiaryUrl String? @map("about_image_tertiary_url")
+	problemSolvingSummaryEn String @default("") @map("problem_solving_summary_en")
+	problemSolvingSummaryBn String @default("") @map("problem_solving_summary_bn")
+	projectsSectionTitleEn String  @default("Projects") @map("projects_section_title_en")
+	projectsSectionTitleBn String  @default("প্রজেক্ট") @map("projects_section_title_bn")
+	blogsSectionTitleEn   String   @default("Blogs") @map("blogs_section_title_en")
+	blogsSectionTitleBn   String   @default("ব্লগসমূহ") @map("blogs_section_title_bn")
+	contactEmail          String?  @map("contact_email")
+	contactPhone          String?  @map("contact_phone")
+	contactLocationEn     String?  @map("contact_location_en")
+	contactLocationBn     String?  @map("contact_location_bn")
+	cvUrl                 String?  @map("cv_url")
+	admin                 Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt             DateTime @default(now()) @map("created_at")
+	updatedAt             DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@map("site_configs")
+}
+
+model Education {
+	id            String   @id @default(cuid())
+	adminId       String   @map("admin_id")
+	degreeEn      String   @map("degree_en")
+	degreeBn      String   @map("degree_bn")
+	subjectEn     String   @map("subject_en")
+	subjectBn     String   @map("subject_bn")
+	yearLabel     String   @map("year_label")
+	resultEn      String   @map("result_en")
+	resultBn      String   @map("result_bn")
+	institutionEn String   @map("institution_en")
+	institutionBn String   @map("institution_bn")
+	detailsEn     String   @default("") @map("details_en")
+	detailsBn     String   @default("") @map("details_bn")
+	imageUrl      String?  @map("image_url")
+	logoUrl       String?  @map("logo_url")
+	sortOrder     Int      @default(0) @map("sort_order")
+	isPublished   Boolean  @default(true) @map("is_published")
+	admin         Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt     DateTime @default(now()) @map("created_at")
+	updatedAt     DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([sortOrder])
+	@@map("educations")
+}
+
+model Experience {
+	id            String   @id @default(cuid())
+	adminId       String   @map("admin_id")
+	titleEn       String   @map("title_en")
+	titleBn       String   @map("title_bn")
+	companyEn     String   @map("company_en")
+	companyBn     String   @map("company_bn")
+	periodEn      String   @map("period_en")
+	periodBn      String   @map("period_bn")
+	detailsEn     String   @default("") @map("details_en")
+	detailsBn     String   @default("") @map("details_bn")
+	sortOrder     Int      @default(0) @map("sort_order")
+	isPublished   Boolean  @default(true) @map("is_published")
+	admin         Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt     DateTime @default(now()) @map("created_at")
+	updatedAt     DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([sortOrder])
+	@@map("experiences")
+}
+
+model Skill {
+	id             String   @id @default(cuid())
+	adminId        String   @map("admin_id")
+	categoryKey    String   @map("category_key")
+	categoryTitleEn String  @map("category_title_en")
+	categoryTitleBn String  @map("category_title_bn")
+	nameEn         String   @map("name_en")
+	nameBn         String   @map("name_bn")
+	percentage     Int      @default(0)
+	logoUrl        String?  @map("logo_url")
+	sortOrder      Int      @default(0) @map("sort_order")
+	isPublished    Boolean  @default(true) @map("is_published")
+	admin          Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt      DateTime @default(now()) @map("created_at")
+	updatedAt      DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([categoryKey])
+	@@index([sortOrder])
+	@@map("skills")
+}
+
+model TeamMember {
+	id            String   @id @default(cuid())
+	adminId       String   @map("admin_id")
+	memberCode    String   @unique @map("member_code")
+	nameEn        String   @map("name_en")
+	nameBn        String   @map("name_bn")
+	imageUrl      String?  @map("image_url")
+	portfolioUrl  String?  @map("portfolio_url")
+	sortOrder     Int      @default(0) @map("sort_order")
+	isPublished   Boolean  @default(true) @map("is_published")
+	admin         Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt     DateTime @default(now()) @map("created_at")
+	updatedAt     DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([sortOrder])
+	@@map("team_members")
+}
+
+model Project {
+	id             String   @id @default(cuid())
+	adminId        String   @map("admin_id")
+	slug           String   @unique
+	titleEn        String   @map("title_en")
+	titleBn        String   @map("title_bn")
+	typeEn         String   @map("type_en")
+	typeBn         String   @map("type_bn")
+	detailsEn      String   @default("") @map("details_en")
+	detailsBn      String   @default("") @map("details_bn")
+	level          String
+	categoryEn     String   @map("category_en")
+	categoryBn     String   @map("category_bn")
+	liveUrl        String?  @map("live_url")
+	logoUrl        String?  @map("logo_url")
+	coverImageUrl  String?  @map("cover_image_url")
+	technologiesEn String   @default("") @map("technologies_en")
+	technologiesBn String   @default("") @map("technologies_bn")
+	memberCodes    String[] @default([]) @map("member_codes")
+	sortOrder      Int      @default(0) @map("sort_order")
+	isPublished    Boolean  @default(true) @map("is_published")
+	admin          Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt      DateTime @default(now()) @map("created_at")
+	updatedAt      DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([sortOrder])
+	@@map("projects")
+}
+
+model Blog {
+	id                String   @id @default(cuid())
+	adminId           String   @map("admin_id")
+	slug              String   @unique
+	titleEn           String   @map("title_en")
+	titleBn           String   @map("title_bn")
+	authorNameEn      String   @map("author_name_en")
+	authorNameBn      String   @map("author_name_bn")
+	timeToReadMinutes Int      @default(5) @map("time_to_read_minutes")
+	uploadedAt        DateTime @default(now()) @map("uploaded_at")
+	fullDetailsEn     String   @default("") @map("full_details_en")
+	fullDetailsBn     String   @default("") @map("full_details_bn")
+	tagsEn            String   @default("") @map("tags_en")
+	tagsBn            String   @default("") @map("tags_bn")
+	mediaUrls         String[] @default([]) @map("media_urls")
+	coverImageUrl     String?  @map("cover_image_url")
+	sortOrder         Int      @default(0) @map("sort_order")
+	isPublished       Boolean  @default(true) @map("is_published")
+	admin             Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+	createdAt         DateTime @default(now()) @map("created_at")
+	updatedAt         DateTime @updatedAt @map("updated_at")
+
+	@@index([adminId])
+	@@index([sortOrder])
+	@@map("blogs")
+}
+
+model ContactMessage {
+	id          String    @id @default(cuid())
+	name        String
+	email       String
+	subject     String?
+	message     String
+	ipAddress   String?   @map("ip_address")
+	userAgent   String?   @map("user_agent")
+	isRead      Boolean   @default(false) @map("is_read")
+	respondedAt DateTime? @map("responded_at")
+	createdAt   DateTime  @default(now()) @map("created_at")
+	updatedAt   DateTime  @updatedAt @map("updated_at")
+
+	@@index([createdAt])
+	@@index([email])
+	@@map("contact_messages")
+}
