@@ -124,16 +124,7 @@ export default async function ProjectDetailsPage({ params, searchParams }: Proje
 
             <div className="p-6 sm:p-10">
               <p className="mb-3 text-xs tracking-[0.2em] text-primary uppercase">Case Study</p>
-              <h1 className="font-headline text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
-
-              <div className="mt-4 flex flex-wrap gap-3 text-xs text-on-surface-variant">
-                <span>{type || "Project"}</span>
-                <span>{project.level}</span>
-                <span>{category}</span>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 text-xs text-on-surface-variant">
-                <p className="mb-2 text-[11px] tracking-wide text-primary uppercase">{language === "bn" ? "প্রজেক্ট লোগো" : "Project Logo"}</p>
+              <div className="mt-4 rounded-2xl py-4">
                 {project.logoUrl ? (
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-xl border border-outline-variant/40 bg-white/90 p-2">
@@ -145,18 +136,17 @@ export default async function ProjectDetailsPage({ params, searchParams }: Proje
                         className="h-16 w-16 object-contain"
                       />
                     </div>
-                    <a
-                      href={project.logoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary underline underline-offset-2 transition hover:text-secondary"
-                    >
-                      {language === "bn" ? "লোগো ওপেন করুন" : "Open logo"}
-                    </a>
                   </div>
                 ) : (
                   <p>{language === "bn" ? "লোগো পাওয়া যায়নি।" : "Logo is not available."}</p>
                 )}
+              </div>
+              <h1 className="font-headline text-3xl font-black tracking-tight sm:text-5xl">{title}</h1>
+
+              <div className="mt-4 flex flex-wrap gap-3 text-xs text-on-surface-variant">
+                <span>{type || "Project"}</span>
+                <span>{project.level}</span>
+                <span>{category}</span>
               </div>
 
               <div className="mt-8 whitespace-pre-line leading-relaxed text-on-surface-variant">{details}</div>
