@@ -3,7 +3,9 @@ import Link from "next/link";
 import AnimatedBackgroundGlow from "@/Components/AnimatedBackgroundGlow";
 import BlogMediaSlider from "@/Components/BlogMediaSlider";
 import BlogFilters from "@/Components/BlogFilters";
-import { getPublishedBlogs, getSiteConfig, pickLocalized, resolveLanguage } from "@/lib/public-content";
+import SubpageTopBar from "@/Components/SubpageTopBar";
+import { getPublishedBlogs, getSiteConfig, pickLocalized } from "@/lib/public-content";
+import { resolveRequestLanguage } from "@/lib/request-language";
 
 type BlogsPageProps = {
   searchParams: Promise<{ lang?: string; category?: string; q?: string }>;
@@ -11,7 +13,7 @@ type BlogsPageProps = {
 
 export async function generateMetadata({ searchParams }: BlogsPageProps): Promise<Metadata> {
   const params = await searchParams;
-  const language = resolveLanguage(params.lang);
+  const language = await resolveRequestLanguage(params.lang);
   const siteConfig = await getSiteConfig();
 
   const blogs = await getPublishedBlogs();
@@ -39,7 +41,7 @@ export async function generateMetadata({ searchParams }: BlogsPageProps): Promis
 
 export default async function BlogsPage({ searchParams }: BlogsPageProps) {
   const params = await searchParams;
-  const language = resolveLanguage(params.lang);
+  const language = await resolveRequestLanguage(params.lang);
   const blogs = await getPublishedBlogs();
   const selectedCategory = (params.category ?? "").trim();
   const query = (params.q ?? "").trim();
@@ -107,6 +109,7 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
       <AnimatedBackgroundGlow />
       <main className="relative z-10 min-h-screen px-6 py-16 text-on-surface sm:px-8">
         <div className="mx-auto max-w-7xl">
+        <SubpageTopBar language={language} />
         <section className="glass-panel mb-12 rounded-[2rem] border border-outline-variant/30 p-8 md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>

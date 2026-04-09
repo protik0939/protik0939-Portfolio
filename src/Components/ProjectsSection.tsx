@@ -61,7 +61,7 @@ export default function ProjectsSection({ projects = [], siteConfig = null }: Re
             {t("projects.summary", "A collection of production-ready applications focusing on user experience, performance, and scalability.")}
           </p>
           <Link
-            href="/projects"
+            href={`/projects?lang=${language}`}
             className="rounded-full border border-primary/40 px-5 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
           >
             {t("projects.showAll", "Show All Projects")}
@@ -83,7 +83,7 @@ export default function ProjectsSection({ projects = [], siteConfig = null }: Re
                   <span className="mb-2 block text-sm text-secondary">{type}</span>
                   <h3 className="mb-4 font-headline text-3xl font-bold">{title}</h3>
                   <p className="mb-8 leading-relaxed text-on-surface-variant">{details}</p>
-                  <Link href={project.slug === "projects" ? "/projects" : `/projects/${project.slug}`} className="group/btn flex items-center gap-2 font-bold text-primary">
+                  <Link href={project.slug === "projects" ? `/projects?lang=${language}` : `/projects/${project.slug}?lang=${language}`} className="group/btn flex items-center gap-2 font-bold text-primary">
                     {t("projects.viewDetails", "View Details")} <ArrowRight className="h-5 w-5 transition-transform group-hover/btn:translate-x-1" />
                   </Link>
                 </div>

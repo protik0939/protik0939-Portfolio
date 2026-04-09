@@ -3,7 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 import AnimatedBackgroundGlow from "@/Components/AnimatedBackgroundGlow";
 import ProjectFilters from "@/Components/ProjectFilters";
-import { getPublishedProjects, getPublishedSkills, getSiteConfig, pickLocalized, resolveLanguage } from "@/lib/public-content";
+import SubpageTopBar from "@/Components/SubpageTopBar";
+import { getPublishedProjects, getPublishedSkills, getSiteConfig, pickLocalized } from "@/lib/public-content";
+import { resolveRequestLanguage } from "@/lib/request-language";
 
 type ProjectsPageProps = {
   searchParams: Promise<{ lang?: string; tech?: string; q?: string }>;
@@ -11,7 +13,7 @@ type ProjectsPageProps = {
 
 export async function generateMetadata({ searchParams }: ProjectsPageProps): Promise<Metadata> {
   const params = await searchParams;
-  const language = resolveLanguage(params.lang);
+  const language = await resolveRequestLanguage(params.lang);
   const siteConfig = await getSiteConfig();
 
   const projects = await getPublishedProjects();
@@ -39,7 +41,7 @@ export async function generateMetadata({ searchParams }: ProjectsPageProps): Pro
 
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const params = await searchParams;
-  const language = resolveLanguage(params.lang);
+  const language = await resolveRequestLanguage(params.lang);
   const selectedTechnology = (params.tech ?? "").trim();
   const query = (params.q ?? "").trim();
   const [projects, skills] = await Promise.all([getPublishedProjects(), getPublishedSkills()]);
@@ -114,6 +116,7 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
       <AnimatedBackgroundGlow />
       <main className="relative z-10 min-h-screen px-6 py-16 text-on-surface sm:px-8">
         <div className="mx-auto max-w-7xl">
+        <SubpageTopBar language={language} />
         <section className="glass-panel mb-12 rounded-[2rem] border border-outline-variant/30 p-8 md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div>

@@ -70,6 +70,7 @@ export function AppUIProvider({ children }: Readonly<{ children: React.ReactNode
     void loadDictionary();
     if (isPreferenceHydrated) {
       localStorage.setItem("portfolio-language", language);
+      document.cookie = `portfolio-language=${language}; path=/; max-age=31536000; samesite=lax`;
     }
 
     return () => {

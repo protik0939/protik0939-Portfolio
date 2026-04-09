@@ -3,13 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AnimatedBackgroundGlow from "@/Components/AnimatedBackgroundGlow";
+import SubpageTopBar from "@/Components/SubpageTopBar";
 import {
   getPublishedProjectBySlug,
   getPublishedSkills,
   getPublishedTeamMembersByCodes,
   pickLocalized,
-  resolveLanguage,
 } from "@/lib/public-content";
+import { resolveRequestLanguage } from "@/lib/request-language";
 
 type ProjectDetailsPageProps = {
   params: Promise<{ slug: string }>;
@@ -19,7 +20,7 @@ type ProjectDetailsPageProps = {
 export async function generateMetadata({ params, searchParams }: ProjectDetailsPageProps): Promise<Metadata> {
   const { slug } = await params;
   const query = await searchParams;
-  const language = resolveLanguage(query.lang);
+  const language = await resolveRequestLanguage(query.lang);
   const project = await getPublishedProjectBySlug(slug);
 
   if (!project) {
@@ -61,7 +62,7 @@ export async function generateMetadata({ params, searchParams }: ProjectDetailsP
 export default async function ProjectDetailsPage({ params, searchParams }: ProjectDetailsPageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const language = resolveLanguage(query.lang);
+  const language = await resolveRequestLanguage(query.lang);
   const project = await getPublishedProjectBySlug(slug);
 
   if (!project) {
@@ -102,6 +103,7 @@ export default async function ProjectDetailsPage({ params, searchParams }: Proje
       <AnimatedBackgroundGlow />
       <main className="relative z-10 min-h-screen px-6 py-16 text-on-surface sm:px-8">
         <div className="mx-auto max-w-5xl">
+          <SubpageTopBar language={language} />
           <div className="mb-8 flex items-center justify-between">
             <Link href={`/projects?lang=${language}`} className="inline-flex rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10">
               {language === "bn" ? "সব প্রজেক্ট" : "All Projects"}

@@ -5,7 +5,9 @@ import { notFound } from "next/navigation";
 import AnimatedBackgroundGlow from "@/Components/AnimatedBackgroundGlow";
 import BlogMediaSlider from "@/Components/BlogMediaSlider";
 import BlogShareButton from "@/Components/BlogShareButton";
-import { getPublishedBlogBySlug, pickLocalized, resolveLanguage } from "@/lib/public-content";
+import SubpageTopBar from "@/Components/SubpageTopBar";
+import { getPublishedBlogBySlug, pickLocalized } from "@/lib/public-content";
+import { resolveRequestLanguage } from "@/lib/request-language";
 
 type BlogDetailsPageProps = {
   params: Promise<{ slug: string }>;
@@ -60,7 +62,7 @@ function renderDetailsWithAnchors(text: string): ReactNode[] {
 export async function generateMetadata({ params, searchParams }: BlogDetailsPageProps): Promise<Metadata> {
   const { slug } = await params;
   const query = await searchParams;
-  const language = resolveLanguage(query.lang);
+  const language = await resolveRequestLanguage(query.lang);
   const blog = await getPublishedBlogBySlug(slug);
 
   if (!blog) {
@@ -104,7 +106,7 @@ export async function generateMetadata({ params, searchParams }: BlogDetailsPage
 export default async function BlogDetailsPage({ params, searchParams }: BlogDetailsPageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const language = resolveLanguage(query.lang);
+  const language = await resolveRequestLanguage(query.lang);
   const blog = await getPublishedBlogBySlug(slug);
 
   if (!blog) {
@@ -130,6 +132,7 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
       <AnimatedBackgroundGlow />
       <main className="relative z-10 min-h-screen px-6 py-16 text-on-surface sm:px-8">
         <div className="mx-auto max-w-5xl">
+          <SubpageTopBar language={language} />
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
             <Link
               href={`/blogs?lang=${language}`}

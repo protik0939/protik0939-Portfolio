@@ -41,7 +41,7 @@ export default function BlogsSection({ blogs = [], siteConfig = null }: Readonly
           <span className="mb-2 block text-xs tracking-widest text-primary uppercase">{t("sections.latestBlogs", "Latest Blogs")}</span>
           <h2 className="font-headline text-5xl font-bold tracking-tighter">{heading || t("sections.blogs", "Blogs")}</h2>
         </div>
-        <Link href="/blogs" className="text-sm font-semibold text-primary hover:underline" data-reveal>
+        <Link href={`/blogs?lang=${language}`} className="text-sm font-semibold text-primary hover:underline" data-reveal>
           {t("blogs.viewAll", "View All")}
         </Link>
       </AnimatedReveal>
@@ -67,7 +67,7 @@ export default function BlogsSection({ blogs = [], siteConfig = null }: Readonly
           const title = language === "bn" ? blog.titleBn : blog.titleEn;
           const details = language === "bn" ? blog.fullDetailsBn : blog.fullDetailsEn;
           const author = language === "bn" ? blog.authorNameBn : blog.authorNameEn;
-          const href = blog.slug ? `/blogs/${blog.slug}` : "/admin";
+          const href = blog.slug ? `/blogs/${blog.slug}?lang=${language}` : "/admin";
 
           return (
             <AnimatedReveal key={blog.id} className="h-full" delay={0.08 + index * 0.05}>
