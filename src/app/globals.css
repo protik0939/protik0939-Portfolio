@@ -302,25 +302,55 @@ html.lenis body {
 }
 
 .cf-heatmap-wrap .react-calendar-heatmap .color-empty {
-  fill: var(--surface-container-high);
+  fill: #ebedf0;
 }
 
 .cf-heatmap-wrap .react-calendar-heatmap .cf-level-1 {
-  fill: var(--primary);
-  fill-opacity: 0.25;
+  fill: #9be9a8;
 }
 
 .cf-heatmap-wrap .react-calendar-heatmap .cf-level-2 {
-  fill: var(--primary);
-  fill-opacity: 0.45;
+  fill: #40c463;
 }
 
 .cf-heatmap-wrap .react-calendar-heatmap .cf-level-3 {
-  fill: var(--secondary);
-  fill-opacity: 0.65;
+  fill: #30a14e;
 }
 
 .cf-heatmap-wrap .react-calendar-heatmap .cf-level-4 {
-  fill: var(--secondary);
-  fill-opacity: 0.9;
+  fill: #216e39;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap {
+  width: 100%;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap text {
+  fill: var(--on-surface-variant);
+  font-size: 0.65rem;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap rect {
+  stroke: var(--surface-container-low);
+  stroke-width: 1;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap .color-empty {
+  fill: #ebedf0;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap .gh-level-1 {
+  fill: #9be9a8;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap .gh-level-2 {
+  fill: #40c463;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap .gh-level-3 {
+  fill: #30a14e;
+}
+
+.gh-heatmap-wrap .react-calendar-heatmap .gh-level-4 {
+  fill: #216e39;
 }

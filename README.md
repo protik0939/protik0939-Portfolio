@@ -16,6 +16,18 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Environment Variables
+
+To power the GitHub contribution heatmap with the GitHub GraphQL API, set one of these server-side environment variables:
+
+```bash
+GITHUB_TOKEN=your_github_personal_access_token
+# or
+GITHUB_GRAPHQL_TOKEN=your_github_personal_access_token
+```
+
+The token should have permission to read user profile and contribution data.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

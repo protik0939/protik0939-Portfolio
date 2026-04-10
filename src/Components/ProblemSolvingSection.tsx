@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import CalendarHeatmap from "react-calendar-heatmap";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
@@ -49,14 +49,64 @@ export default function ProblemSolvingSection({ siteConfig = null }: Readonly<Pr
   const [isHeatmapLoading, setIsHeatmapLoading] = useState(true);
   const [heatmapError, setHeatmapError] = useState("");
   const [stats, setStats] = useState<CodeforcesHeatmapResponse["stats"]>();
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+
+    for (const value of heatmapValues) {
+      const year = Number.parseInt(value.date.slice(0, 4), 10);
+      if (Number.isFinite(year)) {
+        years.add(year);
+      }
+    }
+
+    return Array.from(years).sort((a, b) => b - a);
+  }, [heatmapValues]);
+
+  useEffect(() => {
+    if (!selectedYear) {
+      return;
+    }
+
+    if (!availableYears.includes(selectedYear)) {
+      setSelectedYear(null);
+    }
+  }, [availableYears, selectedYear]);
+
+  const filteredHeatmapValues = useMemo(() => {
+    if (!selectedYear) {
+      return heatmapValues;
+    }
+
+    const yearPrefix = `${selectedYear}-`;
+    return heatmapValues.filter((value) => value.date.startsWith(yearPrefix));
+  }, [heatmapValues, selectedYear]);
 
   const startDate = useMemo(() => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() - 1);
-    return date;
-  }, []);
+    if (!selectedYear) {
+      const end = new Date();
+      const start = new Date(end);
+      // Include today and previous 364 days for a strict 365-day range.
+      start.setDate(start.getDate() - 364);
+      return start;
+    }
 
-  const endDate = useMemo(() => new Date(), []);
+    return new Date(selectedYear, 0, 1);
+  }, [selectedYear]);
+
+  const endDate = useMemo(() => {
+    if (!selectedYear) {
+      return new Date();
+    }
+
+    const now = new Date();
+    if (selectedYear === now.getFullYear()) {
+      return now;
+    }
+
+    return new Date(selectedYear, 11, 31);
+  }, [selectedYear]);
 
   useEffect(() => {
     let isActive = true;
@@ -109,6 +159,71 @@ export default function ProblemSolvingSection({ siteConfig = null }: Readonly<Pr
     return "cf-level-4";
   };
 
+  let heatmapContent: ReactNode;
+
+  if (isHeatmapLoading) {
+    heatmapContent = (
+      <div className="grid min-h-65 place-items-center text-sm text-on-surface-variant">
+        {t("problemSolving.loadingCodeforces", "Loading Codeforces heatmap...")}
+      </div>
+    );
+  } else if (heatmapError) {
+    heatmapContent = <div className="grid min-h-65 place-items-center text-sm text-on-surface-variant">{heatmapError}</div>;
+  } else if (heatmapValues.length > 0) {
+    heatmapContent = (
+      <div className="cf-heatmap-wrap">
+        <p className="mb-3 text-xs text-on-surface-variant">
+          {t("problemSolving.handle", "Handle")}: {CODEFORCES_HANDLE}
+        </p>
+        {availableYears.length > 0 ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {availableYears.map((year) => {
+              const isActive = year === selectedYear;
+
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  onClick={() => setSelectedYear((previous) => (previous === year ? null : year))}
+                  className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                    isActive
+                      ? "border-primary bg-primary text-on-primary"
+                      : "border-outline-variant/60 bg-surface-container text-on-surface-variant hover:border-primary/60 hover:text-on-surface"
+                  }`}
+                  aria-pressed={isActive}
+                >
+                  {year}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        <CalendarHeatmap
+          startDate={startDate}
+          endDate={endDate}
+          values={filteredHeatmapValues}
+          classForValue={classForValue}
+          showWeekdayLabels
+          titleForValue={(value) => {
+            if (!value?.date) {
+              return t("problemSolving.noSubmissionDay", "No submissions");
+            }
+
+            const count = value.count ?? 0;
+            const countLabel = count === 1 ? "submission" : "submissions";
+            return `${value.date}: ${count} ${countLabel}`;
+          }}
+        />
+      </div>
+    );
+  } else {
+    heatmapContent = (
+      <div className="grid min-h-65 place-items-center text-sm text-on-surface-variant">
+        {t("problemSolving.noCodeforces", "No Codeforces submissions found")}
+      </div>
+    );
+  }
+
   return (
     <section className="bg-surface-container-low px-8 py-24" id="problem-solving">
       <AnimatedReveal className="mx-auto max-w-7xl" delay={0.05}>
@@ -146,40 +261,7 @@ export default function ProblemSolvingSection({ siteConfig = null }: Readonly<Pr
         <div className="grid grid-cols-1 gap-6" data-reveal>
           <div className="glass-panel rounded-3xl border border-outline-variant/30 p-5">
             <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-on-surface-variant">Codeforces Heatmap</h4>
-            {isHeatmapLoading ? (
-              <div className="grid min-h-[260px] place-items-center text-sm text-on-surface-variant">
-                {t("problemSolving.loadingCodeforces", "Loading Codeforces heatmap...")}
-              </div>
-            ) : heatmapError ? (
-              <div className="grid min-h-[260px] place-items-center text-sm text-on-surface-variant">
-                {heatmapError}
-              </div>
-            ) : heatmapValues.length > 0 ? (
-              <div className="cf-heatmap-wrap">
-                <p className="mb-3 text-xs text-on-surface-variant">
-                  {t("problemSolving.handle", "Handle")}: {CODEFORCES_HANDLE}
-                </p>
-                <CalendarHeatmap
-                  startDate={startDate}
-                  endDate={endDate}
-                  values={heatmapValues}
-                  classForValue={classForValue}
-                  showWeekdayLabels
-                  titleForValue={(value) => {
-                    if (!value || !value.date) {
-                      return t("problemSolving.noSubmissionDay", "No submissions");
-                    }
-
-                    const countLabel = value.count === 1 ? "submission" : "submissions";
-                    return `${value.date}: ${value.count} ${countLabel}`;
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="grid min-h-[260px] place-items-center text-sm text-on-surface-variant">
-                {t("problemSolving.noCodeforces", "No Codeforces submissions found")}
-              </div>
-            )}
+            {heatmapContent}
           </div>
         </div>
       </AnimatedReveal>

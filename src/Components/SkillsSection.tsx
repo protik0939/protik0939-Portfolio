@@ -37,7 +37,7 @@ export default function SkillsSection({ skills = [] }: Readonly<SkillsSectionPro
     return {
       key: categoryKey,
       title: title || categoryKey,
-      items: items.slice(0, 6),
+      items: items,
     };
   });
 

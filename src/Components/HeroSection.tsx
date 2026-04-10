@@ -98,7 +98,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
     : `Backed by live data: ${heroStats[0].value}+ projects, ${heroStats[2].value}+ languages, and ${heroStats[1].value}+ production-ready skills.`;
 
   return (
-    <section className="relative flex min-h-230.25 items-center overflow-hidden px-8 md:px-20 sm:pt-0 pt-6" id="home">
+    <section className="relative flex min-h-screen items-center overflow-hidden px-8 md:px-20 sm:pt-0 pt-6" id="home">
       <div className="absolute top-1/4 -left-20 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute right-0 bottom-1/4 -mr-20 h-96 w-96 rounded-full bg-secondary/10 blur-[120px]" />
 
@@ -110,8 +110,8 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               {heroNameTop} <br />
               <span className="font-light text-on-surface-variant italic">{heroNameBottom}</span>
             </h1>
-            <p className="mb-10 max-w-lg text-lg leading-relaxed text-on-surface-variant">{heroDescription}</p>
-            <p className="mb-8 max-w-xl text-sm leading-relaxed text-on-surface-variant">{hiringSnapshot}</p>
+            <p className="mb-6 max-w-lg text-lg leading-relaxed text-on-surface-variant">{heroDescription}</p>
+            <p className="mb-4 max-w-xl text-sm leading-relaxed text-on-surface-variant">{hiringSnapshot}</p>
 
             <div className="flex flex-wrap items-center gap-4">
               <Link
@@ -130,7 +130,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               </Link>
             </div>
 
-            <div className="mt-12 flex gap-6">
+            <div className="mt-6 flex gap-6">
               <Link
                 className="flex h-12 w-12 items-center justify-center rounded-full border border-white/5 bg-surface-container-low text-on-surface-variant transition-all hover:border-primary/50 hover:text-primary"
                 href="https://github.com/protik0939"
