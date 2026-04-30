@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, Languages, Menu, MoonStar, Sun, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppUI } from "@/Components/AppUIProvider";
 
 type TopBarSiteConfig = {
@@ -82,8 +82,49 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const cvLabel = siteConfig ? (isBn ? siteConfig.navCvBn : siteConfig.navCvEn) : t("nav.downloadResume", "Download Resume");
   const cvHref = useMemo(() => normalizeCvSource(siteConfig?.cvUrl), [siteConfig?.cvUrl]);
   const hasCvDocument = Boolean(cvHref);
-  const cvFileName = "md-sadat-alam-protik-cv";
+  const cvFileName = "Md. Sadat Alam Protik - Full Stack Developer Resume";
   const isPdfDocument = (cvHref ?? "").startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(cvHref ?? "");
+  const isDataCv = (cvHref ?? "").startsWith("data:");
+
+  const handleCvDownload = useCallback(() => {
+    if (!cvHref) {
+      return;
+    }
+
+    if (!isDataCv) {
+      globalThis.open(cvHref, "_blank", "noreferrer");
+      return;
+    }
+
+    const commaIndex = cvHref.indexOf(",");
+    if (commaIndex < 0) {
+      return;
+    }
+
+    const metadata = cvHref.slice(0, commaIndex);
+    const base64 = cvHref.slice(commaIndex + 1);
+    const mimeMatch = /data:([^;]+);base64/i.exec(metadata);
+    const mimeType = mimeMatch?.[1] ?? "application/octet-stream";
+
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = `${cvFileName}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      globalThis.open(cvHref, "_blank", "noreferrer");
+    }
+  }, [cvFileName, cvHref, isDataCv]);
 
   useEffect(() => {
     if (!isCvModalOpen) {
@@ -312,16 +353,28 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
               >
                 {t("nav.close", "Close")}
               </button>
-              <a
-                href={cvHref ?? "#"}
-                download={`${cvFileName}.pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className={`inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container ${!cvHref ? "pointer-events-none opacity-60" : ""}`}
-              >
-                <Download className="h-4 w-4" />
-                {t("nav.download", "Download")}
-              </a>
+              {isDataCv ? (
+                <button
+                  type="button"
+                  onClick={handleCvDownload}
+                  className={`inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container ${!cvHref ? "pointer-events-none opacity-60" : ""}`}
+                  disabled={!cvHref}
+                >
+                  <Download className="h-4 w-4" />
+                  {t("nav.download", "Download")}
+                </button>
+              ) : (
+                <a
+                  href={cvHref ?? "#"}
+                  download={`${cvFileName}.pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container ${!cvHref ? "pointer-events-none opacity-60" : ""}`}
+                >
+                  <Download className="h-4 w-4" />
+                  {t("nav.download", "Download")}
+                </a>
+              )}
             </div>
           </div>
         </div>

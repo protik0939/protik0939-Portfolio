@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { BookOpenText, BriefcaseBusiness, Code2, Languages } from "lucide-react";
+import { useCallback } from "react";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
 import Link from "next/link";
@@ -32,6 +33,36 @@ type HeroSectionProps = {
     blogsCount: number;
   };
 };
+
+function normalizeCvSource(raw: string | null | undefined): string | null {
+  const value = raw?.trim() ?? "";
+  if (!value || value === "#contact") {
+    return null;
+  }
+
+  if (value.startsWith("data:")) {
+    const commaIndex = value.indexOf(",");
+    if (commaIndex < 0) {
+      return value;
+    }
+
+    const prefix = value.slice(0, commaIndex + 1);
+    const payload = value.slice(commaIndex + 1).replace(/\s+/g, "");
+    return `${prefix}${payload}`;
+  }
+
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
+    return value;
+  }
+
+  const compact = value.replace(/\s+/g, "");
+  if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 120) {
+    const mimeType = compact.startsWith("JVBERi0") ? "application/pdf" : "application/octet-stream";
+    return `data:${mimeType};base64,${compact}`;
+  }
+
+  return value;
+}
 
 export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionProps>) {
   const { language, t } = useAppUI();
@@ -65,8 +96,45 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
   const heroImageUrl = siteConfig?.heroImageUrl?.trim()
     ? siteConfig.heroImageUrl
     : "https://lh3.googleusercontent.com/aida-public/AB6AXuC1NiI6GYG8-JemI0BPPrJsRqw4YeIJA50jWLCUPLndXzbpP4-VcjPWYvOohYtXMlJuwI2lw9KG3oCT74RKpJUrnnnY-5NaYi_PQIrZqqzcxl3SfveEHG7pGw7aHzKgVFKsFpwfRrY7UkjFuT15-p4oSRFBvxM9ud81WmBaCqtHv8TVVItOGc_zWOBFCxfvx4fW0h8HIMz2UgHz1d6uM0VSGvKtWJKJ7tSFtPg5m2R7e4EVaUAN3BbQ2RjlzTwsA69joQ2dr4MbDSK8";
-  const cvHref = siteConfig?.cvUrl && siteConfig.cvUrl.trim() ? siteConfig.cvUrl : "#contact";
+  const cvHref = normalizeCvSource(siteConfig?.cvUrl) ?? "#contact";
   const cvTarget = cvHref.startsWith("http") || cvHref.startsWith("data:") ? "_blank" : undefined;
+  const isDataCv = cvHref.startsWith("data:");
+  const cvFileName = "Md. Sadat Alam Protik - Full Stack Developer Resume";
+
+  const handleCvDownload = useCallback(() => {
+    if (!isDataCv) {
+      return;
+    }
+
+    const commaIndex = cvHref.indexOf(",");
+    if (commaIndex < 0) {
+      return;
+    }
+
+    const metadata = cvHref.slice(0, commaIndex);
+    const base64 = cvHref.slice(commaIndex + 1);
+    const mimeMatch = /data:([^;]+);base64/i.exec(metadata);
+    const mimeType = mimeMatch?.[1] ?? "application/octet-stream";
+
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = `${cvFileName}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      globalThis.open(cvHref, "_blank", "noreferrer");
+    }
+  }, [cvFileName, cvHref, isDataCv]);
   const heroStats = [
     {
       id: "projects",
@@ -120,14 +188,24 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               >
                 {t("hero.primaryCta", "View Projects")}
               </Link>
-              <Link
-                className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
-                href={cvHref}
-                target={cvTarget}
-                rel={cvTarget ? "noreferrer" : undefined}
-              >
-                {t("hero.secondaryCta", "Download Resume")}
-              </Link>
+              {isDataCv ? (
+                <button
+                  type="button"
+                  onClick={handleCvDownload}
+                  className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
+                >
+                  {t("hero.secondaryCta", "Download Resume")}
+                </button>
+              ) : (
+                <Link
+                  className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
+                  href={cvHref}
+                  target={cvTarget}
+                  rel={cvTarget ? "noreferrer" : undefined}
+                >
+                  {t("hero.secondaryCta", "Download Resume")}
+                </Link>
+              )}
             </div>
 
             <div className="mt-6 flex gap-6">
