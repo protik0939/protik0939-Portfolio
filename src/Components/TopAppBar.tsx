@@ -68,7 +68,7 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState("home");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const dropdownCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownCloseTimer = useRef<number | null>(null);
 
   const isBn = language === "bn";
   const brandLabel = siteConfig ? (isBn ? siteConfig.siteTitleBn : siteConfig.siteTitleEn) : t("brand", "DevPortfolio");
