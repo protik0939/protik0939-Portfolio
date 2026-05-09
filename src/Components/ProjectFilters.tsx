@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Loader2, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type TechnologyFilter = {
@@ -13,8 +14,14 @@ type TechnologyFilter = {
 type ProjectFiltersProps = {
   language: "en" | "bn";
   technologies: TechnologyFilter[];
-  initialTechnology: string;
   initialQuery: string;
+  initialTechnologies: string[];
+  initialType: string;
+  initialCategory: string;
+  initialLevel: string;
+  types: string[];
+  categories: string[];
+  levels: string[];
 };
 
 function normalize(value: string) {
@@ -24,8 +31,14 @@ function normalize(value: string) {
 export default function ProjectFilters({
   language,
   technologies,
-  initialTechnology,
   initialQuery,
+  initialTechnologies,
+  initialType,
+  initialCategory,
+  initialLevel,
+  types,
+  categories,
+  levels,
 }: Readonly<ProjectFiltersProps>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,29 +46,70 @@ export default function ProjectFilters({
   const [isPending, startTransition] = useTransition();
 
   const [query, setQuery] = useState(initialQuery);
-  const [selectedTechnology, setSelectedTechnology] = useState(initialTechnology);
+  const [selectedTechnologies, setSelectedTechnologies] = useState<string[]>(initialTechnologies);
+  const [selectedType, setSelectedType] = useState(initialType);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
+  const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
 
   useEffect(() => {
-    setSelectedTechnology(initialTechnology);
-  }, [initialTechnology]);
+    setSelectedTechnologies(initialTechnologies);
+  }, [initialTechnologies]);
+
+  useEffect(() => {
+    setSelectedType(initialType);
+  }, [initialType]);
+
+  useEffect(() => {
+    setSelectedCategory(initialCategory);
+  }, [initialCategory]);
+
+  useEffect(() => {
+    setSelectedLevel(initialLevel);
+  }, [initialLevel]);
+
+  useEffect(() => {
+    const root = document.createElement("div");
+    root.className = "modal-root";
+    document.body.appendChild(root);
+    setModalRoot(root);
+
+    return () => {
+      document.body.removeChild(root);
+    };
+  }, []);
 
   const labels = useMemo(
     () => ({
       searchPlaceholder: language === "bn" ? "প্রজেক্ট খুঁজুন..." : "Search projects...",
       searchButton: language === "bn" ? "সার্চ" : "Search",
       searching: language === "bn" ? "সার্চ হচ্ছে..." : "Searching...",
-      allTechnologies: language === "bn" ? "সব টেকনোলজি" : "All Technologies",
-      technologyTitle: language === "bn" ? "টেকনোলজি" : "Technologies",
+      advancedFilters: language === "bn" ? "অ্যাডভান্স ফিল্টার" : "Advanced Filter",
+      modalTitle: language === "bn" ? "অ্যাডভান্স ফিল্টার" : "Advanced Filters",
+      techStackTitle: language === "bn" ? "টেক স্ট্যাক" : "Tech Stack",
+      typeTitle: language === "bn" ? "টাইপ" : "Type",
+      categoryTitle: language === "bn" ? "ক্যাটেগরি" : "Category",
+      levelTitle: language === "bn" ? "লেভেল" : "Level",
+      applyFilters: language === "bn" ? "ফিল্টার প্রয়োগ করুন" : "Apply Filters",
+      clearFilters: language === "bn" ? "সব মুছুন" : "Clear All",
+      close: language === "bn" ? "বন্ধ করুন" : "Close",
     }),
     [language],
   );
 
-  const applyFilters = useCallback((nextQuery: string, nextTechnology: string) => {
+  const applyFilters = useCallback((
+    nextQuery: string,
+    nextTechnologies: string[],
+    nextType: string,
+    nextCategory: string,
+    nextLevel: string,
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("lang", language);
 
@@ -66,10 +120,28 @@ export default function ProjectFilters({
       params.delete("q");
     }
 
-    if (nextTechnology.trim().length > 0) {
-      params.set("tech", nextTechnology);
+    if (nextTechnologies.length > 0) {
+      params.set("techs", nextTechnologies.join(","));
     } else {
-      params.delete("tech");
+      params.delete("techs");
+    }
+
+    if (nextType.trim().length > 0) {
+      params.set("type", nextType);
+    } else {
+      params.delete("type");
+    }
+
+    if (nextCategory.trim().length > 0) {
+      params.set("category", nextCategory);
+    } else {
+      params.delete("category");
+    }
+
+    if (nextLevel.trim().length > 0) {
+      params.set("level", nextLevel);
+    } else {
+      params.delete("level");
     }
 
     const queryString = params.toString();
@@ -87,23 +159,42 @@ export default function ProjectFilters({
     setIsDebouncing(true);
     const timer = globalThis.setTimeout(() => {
       setIsDebouncing(false);
-      applyFilters(query, selectedTechnology);
+      applyFilters(query, selectedTechnologies, selectedType, selectedCategory, selectedLevel);
     }, 1000);
 
     return () => {
       globalThis.clearTimeout(timer);
     };
-  }, [applyFilters, query, initialQuery, selectedTechnology]);
+  }, [applyFilters, query, initialQuery, selectedTechnologies, selectedType, selectedCategory, selectedLevel]);
 
   const onSubmit: NonNullable<React.ComponentProps<"form">["onSubmit"]> = (event) => {
     event.preventDefault();
     setIsDebouncing(false);
-    applyFilters(query, selectedTechnology);
+    applyFilters(query, selectedTechnologies, selectedType, selectedCategory, selectedLevel);
   };
 
-  const onTechnologyChange = (technology: string) => {
-    setSelectedTechnology(technology);
-    applyFilters(query, technology);
+  const toggleTechnology = (technology: string) => {
+    setSelectedTechnologies((current) => {
+      const normalized = normalize(technology);
+      const exists = current.some((item) => normalize(item) === normalized);
+      if (exists) {
+        return current.filter((item) => normalize(item) !== normalized);
+      }
+      return [...current, technology];
+    });
+  };
+
+  const applyAdvancedFilters = () => {
+    applyFilters(query, selectedTechnologies, selectedType, selectedCategory, selectedLevel);
+    setIsModalOpen(false);
+  };
+
+  const clearAdvancedFilters = () => {
+    setSelectedTechnologies([]);
+    setSelectedType("");
+    setSelectedCategory("");
+    setSelectedLevel("");
+    applyFilters(query, [], "", "", "");
   };
 
   return (
@@ -138,52 +229,135 @@ export default function ProjectFilters({
         <p className="mb-4 text-xs text-on-surface-variant">{labels.searching}</p>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-xs tracking-[0.18em] text-on-surface-variant uppercase">{labels.technologyTitle}</p>
-        <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => onTechnologyChange("")}
-            className={`inline-flex max-w-full shrink-0 items-center whitespace-nowrap overflow-hidden rounded-full border px-3 py-1.5 text-xs leading-none font-semibold tracking-wide uppercase transition ${
-              selectedTechnology.length === 0
-                ? "border-primary/60 bg-primary/20 text-primary"
-                : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
-            }`}
-          >
-            <span className="truncate">{labels.allTechnologies}</span>
-          </button>
-
-          {technologies.map((technology) => {
-            const isActive = normalize(selectedTechnology) === normalize(technology.name);
-
-            return (
-              <button
-                key={technology.name}
-                type="button"
-                onClick={() => onTechnologyChange(technology.name)}
-                className={`inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap overflow-hidden rounded-full border px-3 py-1.5 text-xs leading-none font-semibold tracking-wide uppercase transition ${
-                  isActive
-                    ? "border-primary/60 bg-primary/20 text-primary"
-                    : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
-                }`}
-              >
-                {technology.iconUrl ? (
-                  <Image
-                    src={technology.iconUrl}
-                    alt={`${technology.name} icon`}
-                    width={14}
-                    height={14}
-                    className="h-3.5 w-3.5 rounded object-cover"
-                  />
-                ) : (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary/70" aria-hidden />
-                )}
-                <span className="min-w-0 max-w-44 truncate">{technology.name}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
+        >
+          {labels.advancedFilters}
+        </button>
       </div>
+
+      {isModalOpen && modalRoot
+        ? createPortal(
+            <div className="modal-backdrop" role="dialog" aria-modal="true">
+              <div className="modal-panel glass-panel w-full max-w-4xl rounded-3xl border border-outline-variant/30 p-5 sm:p-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-on-surface">{labels.modalTitle}</h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-full border border-outline-variant/50 px-4 py-2 text-xs font-semibold text-on-surface"
+                  >
+                    {labels.close}
+                  </button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-on-surface">{labels.typeTitle}</span>
+                    <select
+                      value={selectedType}
+                      onChange={(event) => setSelectedType(event.target.value)}
+                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                    >
+                      <option value="">All</option>
+                      {types.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-on-surface">{labels.categoryTitle}</span>
+                    <select
+                      value={selectedCategory}
+                      onChange={(event) => setSelectedCategory(event.target.value)}
+                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                    >
+                      <option value="">All</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-on-surface">{labels.levelTitle}</span>
+                    <select
+                      value={selectedLevel}
+                      onChange={(event) => setSelectedLevel(event.target.value)}
+                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                    >
+                      <option value="">All</option>
+                      {levels.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-5">
+                  <p className="mb-2 text-xs tracking-[0.18em] text-on-surface-variant uppercase">{labels.techStackTitle}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {technologies.map((technology) => {
+                      const isActive = selectedTechnologies.some((item) => normalize(item) === normalize(technology.name));
+
+                      return (
+                        <button
+                          key={technology.name}
+                          type="button"
+                          onClick={() => toggleTechnology(technology.name)}
+                          className={`inline-flex max-w-full shrink-0 items-center gap-2 whitespace-nowrap overflow-hidden rounded-full border px-3 py-1.5 text-xs leading-none font-semibold tracking-wide uppercase transition ${
+                            isActive
+                              ? "border-primary/60 bg-primary/20 text-primary"
+                              : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
+                          }`}
+                        >
+                          {technology.iconUrl ? (
+                            <Image
+                              src={technology.iconUrl}
+                              alt={`${technology.name} icon`}
+                              width={14}
+                              height={14}
+                              className="h-3.5 w-3.5 rounded object-cover"
+                            />
+                          ) : (
+                            <span className="h-1.5 w-1.5 rounded-full bg-primary/70" aria-hidden />
+                          )}
+                          <span className="min-w-0 max-w-44 truncate">{technology.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={clearAdvancedFilters}
+                    className="rounded-full border border-outline-variant/50 px-4 py-2 text-xs font-semibold text-on-surface"
+                  >
+                    {labels.clearFilters}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyAdvancedFilters}
+                    className="rounded-full border border-primary/40 px-5 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
+                  >
+                    {labels.applyFilters}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            modalRoot,
+          )
+        : null}
     </section>
   );
 }

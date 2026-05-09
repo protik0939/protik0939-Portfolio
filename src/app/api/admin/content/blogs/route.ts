@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const blogs = await prisma.blog.findMany({
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
   });
 
   return NextResponse.json(blogs);

@@ -8,7 +8,7 @@ import { getPublishedProjects, getPublishedSkills, getSiteConfig, pickLocalized 
 import { resolveRequestLanguage } from "@/lib/request-language";
 
 type ProjectsPageProps = {
-  searchParams: Promise<{ lang?: string; tech?: string; q?: string }>;
+  searchParams: Promise<{ lang?: string; techs?: string; tech?: string; type?: string; category?: string; level?: string; q?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: ProjectsPageProps): Promise<Metadata> {
@@ -42,8 +42,11 @@ export async function generateMetadata({ searchParams }: ProjectsPageProps): Pro
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const params = await searchParams;
   const language = await resolveRequestLanguage(params.lang);
-  const selectedTechnology = (params.tech ?? "").trim();
   const query = (params.q ?? "").trim();
+  const techsParam = (params.techs ?? params.tech ?? "").trim();
+  const selectedType = (params.type ?? "").trim();
+  const selectedCategory = (params.category ?? "").trim();
+  const selectedLevel = (params.level ?? "").trim();
   const [projects, skills] = await Promise.all([getPublishedProjects(), getPublishedSkills()]);
 
   const parseTechnologies = (raw: string) =>
@@ -86,7 +89,52 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
     left.name.localeCompare(right.name, language === "bn" ? "bn-BD" : "en-US", { sensitivity: "base" }),
   );
 
-  const normalizedTechnology = selectedTechnology.toLowerCase();
+  const types: string[] = [];
+  const categories: string[] = [];
+  const levels: string[] = [];
+  const seenTypes = new Set<string>();
+  const seenCategories = new Set<string>();
+  const seenLevels = new Set<string>();
+
+  for (const project of projects) {
+    const type = pickLocalized(language, project.typeEn, project.typeBn).trim();
+    const category = pickLocalized(language, project.categoryEn, project.categoryBn).trim();
+    const level = String(project.level ?? "").trim();
+
+    if (type && !seenTypes.has(type.toLowerCase())) {
+      seenTypes.add(type.toLowerCase());
+      types.push(type);
+    }
+
+    if (category && !seenCategories.has(category.toLowerCase())) {
+      seenCategories.add(category.toLowerCase());
+      categories.push(category);
+    }
+
+    if (level && !seenLevels.has(level.toLowerCase())) {
+      seenLevels.add(level.toLowerCase());
+      levels.push(level);
+    }
+  }
+
+  const sortedTypes = types.sort((left, right) =>
+    left.localeCompare(right, language === "bn" ? "bn-BD" : "en-US", { sensitivity: "base" }),
+  );
+  const sortedCategories = categories.sort((left, right) =>
+    left.localeCompare(right, language === "bn" ? "bn-BD" : "en-US", { sensitivity: "base" }),
+  );
+  const sortedLevels = levels.sort((left, right) =>
+    left.localeCompare(right, language === "bn" ? "bn-BD" : "en-US", { sensitivity: "base" }),
+  );
+
+  const selectedTechnologies = techsParam
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  const selectedTechKeys = new Set(selectedTechnologies.map((value) => value.toLowerCase()));
+  const normalizedType = selectedType.toLowerCase();
+  const normalizedCategory = selectedCategory.toLowerCase();
+  const normalizedLevel = selectedLevel.toLowerCase();
   const normalizedQuery = query.toLowerCase();
 
   const filteredProjects = projects.filter((project) => {
@@ -96,10 +144,22 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
     const category = pickLocalized(language, project.categoryEn, project.categoryBn);
     const stack = parseTechnologies(pickLocalized(language, project.technologiesEn, project.technologiesBn));
 
-    const technologyMatched =
-      normalizedTechnology.length === 0 || stack.some((item) => item.toLowerCase() === normalizedTechnology);
+    if (selectedTechKeys.size > 0) {
+      const hasTech = stack.some((item) => selectedTechKeys.has(item.toLowerCase()));
+      if (!hasTech) {
+        return false;
+      }
+    }
 
-    if (!technologyMatched) {
+    if (normalizedType.length > 0 && type.toLowerCase() !== normalizedType) {
+      return false;
+    }
+
+    if (normalizedCategory.length > 0 && category.toLowerCase() !== normalizedCategory) {
+      return false;
+    }
+
+    if (normalizedLevel.length > 0 && String(project.level ?? "").toLowerCase() !== normalizedLevel) {
       return false;
     }
 
@@ -143,8 +203,14 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
         <ProjectFilters
           language={language}
           technologies={sortedTechnologies}
-          initialTechnology={selectedTechnology}
           initialQuery={query}
+          initialTechnologies={selectedTechnologies}
+          initialType={selectedType}
+          initialCategory={selectedCategory}
+          initialLevel={selectedLevel}
+          types={sortedTypes}
+          categories={sortedCategories}
+          levels={sortedLevels}
         />
 
         <p className="mb-4 text-xs tracking-[0.14em] text-on-surface-variant uppercase">

@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, Languages, Menu, MoonStar, Sun, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, Download, Languages, Menu, MoonStar, Sun, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppUI } from "@/Components/AppUIProvider";
 
 type TopBarSiteConfig = {
@@ -67,6 +67,8 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState("home");
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isBn = language === "bn";
   const brandLabel = siteConfig ? (isBn ? siteConfig.siteTitleBn : siteConfig.siteTitleEn) : t("brand", "DevPortfolio");
@@ -78,6 +80,8 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const blogsLabel = isBn ? "ব্লগ" : "Blogs";
   const githubLabel = isBn ? "গিটহাব" : "GitHub";
   const problemSolvingLabel = isBn ? "সমস্যা সমাধান" : "Problem Solving";
+  const expertiseLabel = isBn ? "দক্ষতা" : "Expertise";
+  const careerLabel = isBn ? "ক্যারিয়ার" : "Career";
   const contactLabel = siteConfig ? (isBn ? siteConfig.navContactBn : siteConfig.navContactEn) : t("nav.contact", "Contact");
   const cvLabel = siteConfig ? (isBn ? siteConfig.navCvBn : siteConfig.navCvEn) : t("nav.downloadResume", "Download Resume");
   const cvHref = useMemo(() => normalizeCvSource(siteConfig?.cvUrl), [siteConfig?.cvUrl]);
@@ -85,6 +89,21 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const cvFileName = "Md. Sadat Alam Protik - Full Stack Developer Resume";
   const isPdfDocument = (cvHref ?? "").startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(cvHref ?? "");
   const isDataCv = (cvHref ?? "").startsWith("data:");
+
+  const clearDropdownTimer = useCallback(() => {
+    if (!dropdownCloseTimer.current) {
+      return;
+    }
+    window.clearTimeout(dropdownCloseTimer.current);
+    dropdownCloseTimer.current = null;
+  }, []);
+
+  const scheduleDropdownClose = useCallback(() => {
+    clearDropdownTimer();
+    dropdownCloseTimer.current = window.setTimeout(() => {
+      setOpenDropdown(null);
+    }, 160);
+  }, [clearDropdownTimer]);
 
   const handleCvDownload = useCallback(() => {
     if (!cvHref) {
@@ -138,27 +157,38 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
     };
   }, [isCvModalOpen]);
 
-  const navItems = useMemo<TopNavItem[]>(() => [
+  const navPrimaryItems = useMemo<TopNavItem[]>(() => [
     { href: "#home", label: homeLabel, sectionId: "home" },
     { href: "#about", label: aboutLabel, sectionId: "about" },
+    { href: "#blogs", label: blogsLabel, sectionId: "blogs" },
+    { href: "#contact", label: contactLabel, sectionId: "contact" },
+  ], [aboutLabel, blogsLabel, contactLabel, homeLabel]);
+
+  const expertiseItems = useMemo<TopNavItem[]>(() => [
     { href: "#skills", label: skillsLabel, sectionId: "skills" },
+    { href: "#problem-solving", label: problemSolvingLabel, sectionId: "problem-solving" },
+    { href: "#github-contribution", label: githubLabel, sectionId: "github-contribution" },
+  ], [githubLabel, problemSolvingLabel, skillsLabel]);
+
+  const careerItems = useMemo<TopNavItem[]>(() => [
     { href: "#education-experience", label: educationExperienceLabel, sectionId: "education-experience" },
     { href: "#projects", label: projectsLabel, sectionId: "projects" },
-    { href: "#blogs", label: blogsLabel, sectionId: "blogs" },
-    { href: "#github-contribution", label: githubLabel, sectionId: "github-contribution" },
-    { href: "#problem-solving", label: problemSolvingLabel, sectionId: "problem-solving" },
-    { href: "#contact", label: contactLabel, sectionId: "contact" },
-  ], [
-    aboutLabel,
-    blogsLabel,
-    contactLabel,
-    educationExperienceLabel,
-    githubLabel,
-    homeLabel,
-    problemSolvingLabel,
-    projectsLabel,
-    skillsLabel,
-  ]);
+  ], [educationExperienceLabel, projectsLabel]);
+
+  const navItems = useMemo<TopNavItem[]>(
+    () => [
+      { href: "#home", label: homeLabel, sectionId: "home" },
+      { href: "#about", label: aboutLabel, sectionId: "about" },
+      ...expertiseItems,
+      ...careerItems,
+      { href: "#blogs", label: blogsLabel, sectionId: "blogs" },
+      { href: "#contact", label: contactLabel, sectionId: "contact" },
+    ],
+    [aboutLabel, blogsLabel, careerItems, contactLabel, expertiseItems, homeLabel],
+  );
+
+  const isExpertiseActive = expertiseItems.some((item) => item.sectionId === activeSectionId);
+  const isCareerActive = careerItems.some((item) => item.sectionId === activeSectionId);
 
   useEffect(() => {
     const updateActiveSection = () => {
@@ -190,6 +220,8 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
     };
   }, [navItems]);
 
+  useEffect(() => () => clearDropdownTimer(), [clearDropdownTimer]);
+
   const openCvModal = () => {
     if (!hasCvDocument) {
       globalThis.location.hash = "#contact";
@@ -209,11 +241,104 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
             {brandLabel}
           </div>
 
-          <nav className="custom-scrollbar hidden max-w-[56vw] items-center gap-1 overflow-x-auto rounded-full border border-outline-variant/40 bg-surface-container-low/80 p-1 font-headline text-sm font-medium tracking-tight lg:flex">
-            {navItems.map((item) => (
+          <nav className="custom-scrollbar relative hidden max-w-[60vw] items-center gap-1 overflow-visible rounded-full border border-outline-variant/40 bg-surface-container-low/80 p-1 font-headline text-sm font-medium tracking-tight lg:flex">
+            {navPrimaryItems.slice(0, 2).map((item) => (
               <a
                 key={item.href}
-                onClick={() => setActiveSectionId(item.sectionId)}
+                onClick={() => {
+                  setActiveSectionId(item.sectionId);
+                  setOpenDropdown(null);
+                }}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-all duration-200 active:scale-95 ${
+                  activeSectionId === item.sectionId
+                    ? "bg-primary/20 text-primary shadow-[inset_0_0_0_1px_rgba(175,136,255,0.45)]"
+                    : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                }`}
+                href={item.href}
+              >
+                {item.label}
+              </a>
+            ))}
+
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                clearDropdownTimer();
+                setOpenDropdown("expertise");
+              }}
+              onMouseLeave={scheduleDropdownClose}
+            >
+              <button
+                type="button"
+                className={`nav-dropdown-trigger ${openDropdown === "expertise" || isExpertiseActive ? "is-active" : ""}`}
+                aria-haspopup="true"
+                aria-expanded={openDropdown === "expertise"}
+              >
+                {expertiseLabel}
+                <ChevronDown className="nav-dropdown-caret h-3.5 w-3.5" />
+              </button>
+              <div className="nav-dropdown-panel" data-state={openDropdown === "expertise" ? "open" : "closed"}>
+                {expertiseItems.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => {
+                      setActiveSectionId(item.sectionId);
+                      setOpenDropdown(null);
+                    }}
+                    className={`nav-dropdown-item ${
+                      activeSectionId === item.sectionId ? "is-active" : ""
+                    }`}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                clearDropdownTimer();
+                setOpenDropdown("career");
+              }}
+              onMouseLeave={scheduleDropdownClose}
+            >
+              <button
+                type="button"
+                className={`nav-dropdown-trigger ${openDropdown === "career" || isCareerActive ? "is-active" : ""}`}
+                aria-haspopup="true"
+                aria-expanded={openDropdown === "career"}
+              >
+                {careerLabel}
+                <ChevronDown className="nav-dropdown-caret h-3.5 w-3.5" />
+              </button>
+              <div className="nav-dropdown-panel" data-state={openDropdown === "career" ? "open" : "closed"}>
+                {careerItems.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => {
+                      setActiveSectionId(item.sectionId);
+                      setOpenDropdown(null);
+                    }}
+                    className={`nav-dropdown-item ${
+                      activeSectionId === item.sectionId ? "is-active" : ""
+                    }`}
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {navPrimaryItems.slice(2).map((item) => (
+              <a
+                key={item.href}
+                onClick={() => {
+                  setActiveSectionId(item.sectionId);
+                  setOpenDropdown(null);
+                }}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs transition-all duration-200 active:scale-95 ${
                   activeSectionId === item.sectionId
                     ? "bg-primary/20 text-primary shadow-[inset_0_0_0_1px_rgba(175,136,255,0.45)]"

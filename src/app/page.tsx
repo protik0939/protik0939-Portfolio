@@ -147,11 +147,11 @@ export default async function Home() {
         <HeroSection siteConfig={siteConfig} stats={heroStats} />
         <AboutSection siteConfig={siteConfig} projectCount={homeContent.stats.projectCount} />
         <SkillsSection skills={skills} />
+        <ProblemSolvingSection siteConfig={siteConfig} />
+        <GithubContributionSection />
         <EducationExperienceSection educations={educations} experiences={experiences} />
         <ProjectsSection projects={projects} siteConfig={siteConfig} />
         <BlogsSection blogs={blogs} siteConfig={siteConfig} />
-        <GithubContributionSection />
-        <ProblemSolvingSection siteConfig={siteConfig} />
         <ContactSection siteConfig={siteConfig} />
       </main>
       <SiteFooter />

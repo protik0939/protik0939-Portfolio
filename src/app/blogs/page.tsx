@@ -6,9 +6,10 @@ import BlogFilters from "@/Components/BlogFilters";
 import SubpageTopBar from "@/Components/SubpageTopBar";
 import { getPublishedBlogs, getSiteConfig, pickLocalized } from "@/lib/public-content";
 import { resolveRequestLanguage } from "@/lib/request-language";
+import { stripHtml } from "@/lib/text-format";
 
 type BlogsPageProps = {
-  searchParams: Promise<{ lang?: string; category?: string; q?: string }>;
+  searchParams: Promise<{ lang?: string; q?: string; tags?: string; start?: string; end?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: BlogsPageProps): Promise<Metadata> {
@@ -43,8 +44,10 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
   const params = await searchParams;
   const language = await resolveRequestLanguage(params.lang);
   const blogs = await getPublishedBlogs();
-  const selectedCategory = (params.category ?? "").trim();
   const query = (params.q ?? "").trim();
+  const tagsParam = (params.tags ?? "").trim();
+  const startParam = (params.start ?? "").trim();
+  const endParam = (params.end ?? "").trim();
 
   const parseTags = (raw: string) =>
     raw
@@ -73,19 +76,33 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
     left.localeCompare(right, language === "bn" ? "bn-BD" : "en-US", { sensitivity: "base" }),
   );
 
-  const normalizedCategory = selectedCategory.toLowerCase();
   const normalizedQuery = query.toLowerCase();
+  const selectedTags = tagsParam
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0);
+  const selectedTagKeys = new Set(selectedTags.map((tag) => tag.toLowerCase()));
+  const startDate = startParam ? new Date(`${startParam}T00:00:00`) : null;
+  const endDate = endParam ? new Date(`${endParam}T23:59:59.999`) : null;
 
   const filteredBlogs = blogs.filter((blog) => {
     const title = pickLocalized(language, blog.titleEn, blog.titleBn);
-    const details = pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn);
+    const details = stripHtml(pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn));
     const author = pickLocalized(language, blog.authorNameEn, blog.authorNameBn);
     const tags = parseTags(pickLocalized(language, blog.tagsEn, blog.tagsBn));
 
-    const categoryMatched =
-      normalizedCategory.length === 0 || tags.some((tag) => tag.toLowerCase() === normalizedCategory);
+    if (selectedTagKeys.size > 0) {
+      const hasTag = tags.some((tag) => selectedTagKeys.has(tag.toLowerCase()));
+      if (!hasTag) {
+        return false;
+      }
+    }
 
-    if (!categoryMatched) {
+    if (startDate && blog.uploadedAt < startDate) {
+      return false;
+    }
+
+    if (endDate && blog.uploadedAt > endDate) {
       return false;
     }
 
@@ -136,8 +153,10 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
         <BlogFilters
           language={language}
           categories={sortedCategories}
-          initialCategory={selectedCategory}
           initialQuery={query}
+          initialTags={selectedTags}
+          initialStartDate={startParam}
+          initialEndDate={endParam}
         />
 
         <p className="mb-4 text-xs tracking-[0.14em] text-on-surface-variant uppercase">
@@ -149,7 +168,7 @@ export default async function BlogsPage({ searchParams }: BlogsPageProps) {
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredBlogs.map((blog) => {
             const title = pickLocalized(language, blog.titleEn, blog.titleBn);
-            const details = pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn);
+            const details = stripHtml(pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn));
             const author = pickLocalized(language, blog.authorNameEn, blog.authorNameBn);
             const tagsRaw = pickLocalized(language, blog.tagsEn, blog.tagsBn);
             const tags = tagsRaw

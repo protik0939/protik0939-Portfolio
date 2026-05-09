@@ -21,24 +21,24 @@ export async function getHomeContent() {
     getSiteConfig(),
     prisma.education.findMany({
       where: { isPublished: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
     }),
     prisma.experience.findMany({
       where: { isPublished: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
     }),
     prisma.skill.findMany({
       where: { isPublished: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
     }),
     prisma.project.findMany({
       where: { isPublished: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
       take: 6,
     }),
     prisma.blog.findMany({
       where: { isPublished: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
       take: 6,
     }),
     prisma.project.count({
@@ -105,7 +105,7 @@ export async function getHomeContent() {
 export async function getPublishedProjects() {
   return prisma.project.findMany({
     where: { isPublished: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
   });
 }
 
@@ -121,7 +121,7 @@ export async function getPublishedProjectBySlug(slug: string) {
 export async function getPublishedSkills() {
   return prisma.skill.findMany({
     where: { isPublished: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
     select: {
       nameEn: true,
       nameBn: true,
@@ -142,7 +142,7 @@ export async function getPublishedTeamMembersByCodes(memberCodes: string[]) {
         in: memberCodes,
       },
     },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
     select: {
       memberCode: true,
       nameEn: true,
@@ -156,7 +156,7 @@ export async function getPublishedTeamMembersByCodes(memberCodes: string[]) {
 export async function getPublishedBlogs() {
   return prisma.blog.findMany({
     where: { isPublished: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
   });
 }
 

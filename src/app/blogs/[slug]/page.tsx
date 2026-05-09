@@ -8,6 +8,7 @@ import BlogShareButton from "@/Components/BlogShareButton";
 import SubpageTopBar from "@/Components/SubpageTopBar";
 import { getPublishedBlogBySlug, pickLocalized } from "@/lib/public-content";
 import { resolveRequestLanguage } from "@/lib/request-language";
+import { forceAnchorTargets, isProbablyHtml, stripHtml } from "@/lib/text-format";
 
 type BlogDetailsPageProps = {
   params: Promise<{ slug: string }>;
@@ -72,7 +73,7 @@ export async function generateMetadata({ params, searchParams }: BlogDetailsPage
   }
 
   const title = pickLocalized(language, blog.titleEn, blog.titleBn);
-  const description = pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn).slice(0, 160);
+  const description = stripHtml(pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn)).slice(0, 160);
   const tags = pickLocalized(language, blog.tagsEn, blog.tagsBn)
     .split(",")
     .map((tag) => tag.trim())
@@ -114,7 +115,9 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
   }
 
   const title = pickLocalized(language, blog.titleEn, blog.titleBn);
-  const fullDetails = pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn);
+  const fullDetails = pickLocalized(language, blog.fullDetailsEn, blog.fullDetailsBn).trim();
+  const fullDetailsHtml = forceAnchorTargets(fullDetails);
+  const fullDetailsText = stripHtml(fullDetails);
   const author = pickLocalized(language, blog.authorNameEn, blog.authorNameBn);
   const tags = pickLocalized(language, blog.tagsEn, blog.tagsBn)
     .split(",")
@@ -140,7 +143,7 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
             >
               {language === "bn" ? "সব ব্লগ" : "All Blogs"}
             </Link>
-            <BlogShareButton title={title} text={fullDetails.slice(0, 140)} />
+            <BlogShareButton title={title} text={fullDetailsText.slice(0, 140)} />
           </div>
 
           <article className="glass-panel overflow-hidden rounded-[2rem] border border-outline-variant/30">
@@ -169,9 +172,13 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
                 </div>
               ) : null}
 
-              <div className="mt-8 space-y-2 leading-relaxed text-on-surface-variant">
-                {renderDetailsWithAnchors(fullDetails)}
-              </div>
+              {isProbablyHtml(fullDetails) ? (
+                <div className="rich-text mt-8 leading-relaxed" dangerouslySetInnerHTML={{ __html: fullDetailsHtml }} />
+              ) : (
+                <div className="mt-8 space-y-2 leading-relaxed text-on-surface-variant">
+                  {renderDetailsWithAnchors(fullDetails)}
+                </div>
+              )}
             </div>
           </article>
         </div>

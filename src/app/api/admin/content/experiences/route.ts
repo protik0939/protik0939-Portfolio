@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const experiences = await prisma.experience.findMany({
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
   });
 
   return NextResponse.json(experiences);

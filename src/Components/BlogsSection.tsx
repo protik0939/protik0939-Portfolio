@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
+import { stripHtml } from "@/lib/text-format";
 
 type BlogItem = {
   id: string;
@@ -65,7 +66,7 @@ export default function BlogsSection({ blogs = [], siteConfig = null }: Readonly
             ]
         ).map((blog, index) => {
           const title = language === "bn" ? blog.titleBn : blog.titleEn;
-          const details = language === "bn" ? blog.fullDetailsBn : blog.fullDetailsEn;
+          const details = stripHtml(language === "bn" ? blog.fullDetailsBn : blog.fullDetailsEn);
           const author = language === "bn" ? blog.authorNameBn : blog.authorNameEn;
           const href = blog.slug ? `/blogs/${blog.slug}?lang=${language}` : "/admin";
 

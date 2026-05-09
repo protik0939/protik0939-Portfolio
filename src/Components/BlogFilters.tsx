@@ -2,49 +2,88 @@
 
 import { Loader2, Search } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type BlogFiltersProps = {
   language: "en" | "bn";
   categories: string[];
-  initialCategory: string;
   initialQuery: string;
+  initialTags: string[];
+  initialStartDate: string;
+  initialEndDate: string;
 };
 
 function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
-export default function BlogFilters({ language, categories, initialCategory, initialQuery }: BlogFiltersProps) {
+export default function BlogFilters({
+  language,
+  categories,
+  initialQuery,
+  initialTags,
+  initialStartDate,
+  initialEndDate,
+}: BlogFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
   const [query, setQuery] = useState(initialQuery);
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDebouncing, setIsDebouncing] = useState(false);
+  const [modalRoot, setModalRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const root = document.createElement("div");
+    root.className = "modal-root";
+    document.body.appendChild(root);
+    setModalRoot(root);
+
+    return () => {
+      document.body.removeChild(root);
+    };
+  }, []);
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
 
   useEffect(() => {
-    setSelectedCategory(initialCategory);
-  }, [initialCategory]);
+    setSelectedTags(initialTags);
+  }, [initialTags]);
+
+  useEffect(() => {
+    setStartDate(initialStartDate);
+  }, [initialStartDate]);
+
+  useEffect(() => {
+    setEndDate(initialEndDate);
+  }, [initialEndDate]);
 
   const labels = useMemo(
     () => ({
       searchPlaceholder: language === "bn" ? "ব্লগ খুঁজুন..." : "Search blogs...",
       searchButton: language === "bn" ? "সার্চ" : "Search",
       searching: language === "bn" ? "সার্চ হচ্ছে..." : "Searching...",
-      allCategories: language === "bn" ? "সব ক্যাটেগরি" : "All Categories",
-      categoryTitle: language === "bn" ? "ক্যাটেগরি" : "Categories",
+      rangeStart: language === "bn" ? "শুরুর তারিখ" : "Start Date",
+      rangeEnd: language === "bn" ? "শেষ তারিখ" : "End Date",
+      advancedFilters: language === "bn" ? "অ্যাডভান্স ফিল্টার" : "Advanced Filter",
+      modalTitle: language === "bn" ? "অ্যাডভান্স ফিল্টার" : "Advanced Filters",
+      tagsTitle: language === "bn" ? "ট্যাগ বাছাই করুন" : "Select Tags",
+      applyFilters: language === "bn" ? "ফিল্টার প্রয়োগ করুন" : "Apply Filters",
+      clearFilters: language === "bn" ? "সব মুছুন" : "Clear All",
+      close: language === "bn" ? "বন্ধ করুন" : "Close",
     }),
     [language],
   );
 
-  const applyFilters = useCallback((nextQuery: string, nextCategory: string) => {
+  const applyFilters = useCallback((nextQuery: string, nextTags: string[], nextStart: string, nextEnd: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("lang", language);
 
@@ -55,10 +94,22 @@ export default function BlogFilters({ language, categories, initialCategory, ini
       params.delete("q");
     }
 
-    if (nextCategory.trim().length > 0) {
-      params.set("category", nextCategory);
+    if (nextStart.trim().length > 0) {
+      params.set("start", nextStart);
     } else {
-      params.delete("category");
+      params.delete("start");
+    }
+
+    if (nextEnd.trim().length > 0) {
+      params.set("end", nextEnd);
+    } else {
+      params.delete("end");
+    }
+
+    if (nextTags.length > 0) {
+      params.set("tags", nextTags.join(","));
+    } else {
+      params.delete("tags");
     }
 
     const queryString = params.toString();
@@ -76,23 +127,41 @@ export default function BlogFilters({ language, categories, initialCategory, ini
     setIsDebouncing(true);
     const timer = window.setTimeout(() => {
       setIsDebouncing(false);
-      applyFilters(query, selectedCategory);
+      applyFilters(query, selectedTags, startDate, endDate);
     }, 1000);
 
     return () => {
       window.clearTimeout(timer);
     };
-  }, [applyFilters, query, initialQuery, selectedCategory]);
+  }, [applyFilters, query, initialQuery, selectedTags, startDate, endDate]);
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsDebouncing(false);
-    applyFilters(query, selectedCategory);
+    applyFilters(query, selectedTags, startDate, endDate);
   };
 
-  const onCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    applyFilters(query, category);
+  const toggleTag = (tag: string) => {
+    setSelectedTags((current) => {
+      const normalizedTag = normalize(tag);
+      const exists = current.some((item) => normalize(item) === normalizedTag);
+      if (exists) {
+        return current.filter((item) => normalize(item) !== normalizedTag);
+      }
+      return [...current, tag];
+    });
+  };
+
+  const applyAdvancedFilters = () => {
+    applyFilters(query, selectedTags, startDate, endDate);
+    setIsModalOpen(false);
+  };
+
+  const clearAdvancedFilters = () => {
+    setSelectedTags([]);
+    setStartDate("");
+    setEndDate("");
+    applyFilters(query, [], "", "");
   };
 
   return (
@@ -127,41 +196,96 @@ export default function BlogFilters({ language, categories, initialCategory, ini
         <p className="mb-4 text-xs text-on-surface-variant">{labels.searching}</p>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-xs tracking-[0.18em] text-on-surface-variant uppercase">{labels.categoryTitle}</p>
-        <div className="custom-scrollbar flex gap-2 overflow-x-auto pb-1">
-          <button
-            type="button"
-            onClick={() => onCategoryChange("")}
-            className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition ${
-              selectedCategory.length === 0
-                ? "border-primary/60 bg-primary/20 text-primary"
-                : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
-            }`}
-          >
-            {labels.allCategories}
-          </button>
-
-          {categories.map((category) => {
-            const isActive = normalize(selectedCategory) === normalize(category);
-
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() => onCategoryChange(category)}
-                className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition ${
-                  isActive
-                    ? "border-primary/60 bg-primary/20 text-primary"
-                    : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
-                }`}
-              >
-                {category}
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
+        >
+          {labels.advancedFilters}
+        </button>
       </div>
+
+      {isModalOpen && modalRoot
+        ? createPortal(
+            <div className="modal-backdrop" role="dialog" aria-modal="true">
+              <div className="modal-panel glass-panel w-full max-w-3xl rounded-3xl border border-outline-variant/30 p-5 sm:p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-semibold text-on-surface">{labels.modalTitle}</h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-full border border-outline-variant/50 px-4 py-2 text-xs font-semibold text-on-surface"
+              >
+                {labels.close}
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-1 text-sm">
+                <span className="text-on-surface">{labels.rangeStart}</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-on-surface">{labels.rangeEnd}</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+                />
+              </label>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-2 text-xs tracking-[0.18em] text-on-surface-variant uppercase">{labels.tagsTitle}</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((tag) => {
+                  const isActive = selectedTags.some((item) => normalize(item) === normalize(tag));
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold tracking-wide uppercase transition ${
+                        isActive
+                          ? "border-primary/60 bg-primary/20 text-primary"
+                          : "border-outline-variant/40 bg-surface-container-low text-on-surface-variant hover:border-primary/40"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={clearAdvancedFilters}
+                className="rounded-full border border-outline-variant/50 px-4 py-2 text-xs font-semibold text-on-surface"
+              >
+                {labels.clearFilters}
+              </button>
+              <button
+                type="button"
+                onClick={applyAdvancedFilters}
+                className="rounded-full border border-primary/40 px-5 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
+              >
+                {labels.applyFilters}
+              </button>
+            </div>
+              </div>
+            </div>,
+            modalRoot,
+          )
+        : null}
     </section>
   );
 }

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const skills = await prisma.skill.findMany({
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "desc" }, { createdAt: "asc" }],
   });
 
   return NextResponse.json(skills);

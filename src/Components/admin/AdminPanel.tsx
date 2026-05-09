@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type AdminPanelProps = {
   email: string;
@@ -474,6 +474,74 @@ function TextareaField({ label, value, rows = 4, onChange }: Readonly<TextareaFi
         className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
       />
     </label>
+  );
+}
+
+type WysiwygFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function WysiwygField({ label, value, onChange }: Readonly<WysiwygFieldProps>) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!editorRef.current) {
+      return;
+    }
+
+    if (editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || "";
+    }
+  }, [value]);
+
+  const applyCommand = (command: string, commandValue?: string) => {
+    document.execCommand(command, false, commandValue);
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleInput = () => {
+    const html = editorRef.current?.innerHTML ?? "";
+    const normalized = html === "<br>" ? "" : html;
+    onChange(normalized);
+  };
+
+  return (
+    <div className="space-y-2 text-sm md:col-span-2">
+      <span className="text-on-surface">{label}</span>
+      <div className="flex flex-wrap gap-2 rounded-xl border border-outline-variant/40 bg-surface-container-low p-2">
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("bold")}>Bold</button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("italic")}>Italic</button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("underline")}>Underline</button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("insertUnorderedList")}>Bullets</button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("insertOrderedList")}>Numbered</button>
+        <button
+          type="button"
+          className="wysiwyg-btn"
+          onClick={() => {
+            const url = window.prompt("Enter link URL");
+            if (url) {
+              applyCommand("createLink", url);
+            }
+          }}
+        >
+          Link
+        </button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("unlink")}>Unlink</button>
+        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("removeFormat")}>Clear</button>
+      </div>
+      <div
+        ref={editorRef}
+        className="wysiwyg-editor min-h-[180px] rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+        contentEditable
+        data-placeholder="Write rich details here..."
+        onInput={handleInput}
+        suppressContentEditableWarning
+      />
+    </div>
   );
 }
 
@@ -2023,14 +2091,37 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                       />
                       Published
                     </label>
-                    <TextareaField label="Full Details (EN)" value={blogForm.fullDetailsEn} rows={5} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsEn: value }))} />
-                    <TextareaField label="Full Details (BN)" value={blogForm.fullDetailsBn} rows={5} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsBn: value }))} />
-                    <TextareaField
-                      label="Media URLs (comma/new line)"
-                      value={blogForm.mediaUrlsText}
-                      rows={4}
-                      onChange={(value) => setBlogForm((p) => ({ ...p, mediaUrlsText: value }))}
-                    />
+                    <WysiwygField label="Full Details (EN)" value={blogForm.fullDetailsEn} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsEn: value }))} />
+                    <WysiwygField label="Full Details (BN)" value={blogForm.fullDetailsBn} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsBn: value }))} />
+                    <div className="space-y-2 md:col-span-2">
+                      <TextareaField
+                        label="Media URLs (comma/new line)"
+                        value={blogForm.mediaUrlsText}
+                        rows={4}
+                        onChange={(value) => setBlogForm((p) => ({ ...p, mediaUrlsText: value }))}
+                      />
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-outline-variant/40 px-3 py-1.5 text-xs font-semibold text-on-surface">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            const selected = event.target.files?.[0];
+                            if (selected) {
+                              void handleImageFieldUpload(selected, "blog.mediaUrls", (url) => {
+                                setBlogForm((previous) => {
+                                  const trimmed = previous.mediaUrlsText.trim();
+                                  const nextValue = trimmed ? `${trimmed}, ${url}` : url;
+                                  return { ...previous, mediaUrlsText: nextValue };
+                                });
+                              });
+                            }
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                        {uploadingField === "blog.mediaUrls" ? "Uploading..." : "Upload Media Image"}
+                      </label>
+                    </div>
                   </div>
                 ) : null}
 
