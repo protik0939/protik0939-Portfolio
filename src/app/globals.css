@@ -236,6 +236,11 @@ body::-webkit-scrollbar {
   white-space: pre-wrap;
 }
 
+.wysiwyg-editor * {
+  color: inherit !important;
+  background-color: transparent !important;
+}
+
 .wysiwyg-editor:empty::before {
   content: attr(data-placeholder);
   color: var(--on-surface-variant);
@@ -244,6 +249,11 @@ body::-webkit-scrollbar {
 .rich-text {
   color: var(--on-surface-variant);
   white-space: pre-wrap;
+}
+
+.rich-text * {
+  color: inherit !important;
+  background-color: transparent !important;
 }
 
 .rich-text p {
@@ -261,8 +271,9 @@ body::-webkit-scrollbar {
   gap: 0.35rem;
 }
 
-.rich-text a {
-  color: var(--primary);
+.rich-text a,
+.rich-text a * {
+  color: var(--primary) !important;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 4px;
