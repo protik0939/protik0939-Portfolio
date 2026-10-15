@@ -62,6 +62,35 @@ function toBengaliNumber(num: number): string {
   return String(num).replace(/\d/g, (digit) => bnDigits[Number(digit)] ?? digit);
 }
 
+function formatExperienceDuration(totalMonths: number, isBn: boolean): string {
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  if (isBn) {
+    if (years === 0) {
+      return `${toBengaliNumber(months)} মাস +`;
+    }
+    if (months === 0) {
+      return `${toBengaliNumber(years)} বছর +`;
+    }
+    return `${toBengaliNumber(years)} বছর ${toBengaliNumber(months)} মাস +`;
+  }
+
+  // English
+  if (years === 0) {
+    const monthText = months === 1 ? "1 Month" : `${months} Months`;
+    return `${monthText} +`;
+  }
+
+  const yearText = years === 1 ? "1 Year" : `${years} Years`;
+  if (months === 0) {
+    return `${yearText} +`;
+  }
+
+  const monthText = months === 1 ? "1 Month" : `${months} Months`;
+  return `${yearText} ${monthText} +`;
+}
+
 function normalizeCvSource(raw: string | null | undefined): string | null {
   const value = raw?.trim() ?? "";
   if (!value || value === "#contact") {
@@ -97,10 +126,8 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
   const isBn = language === "bn";
 
   const experienceMonths = calculateExperienceMonths();
-  const experienceNumber = isBn ? toBengaliNumber(experienceMonths) : String(experienceMonths);
-  const experienceLabel = isBn
-    ? "মাসের প্রফেশনাল অভিজ্ঞতা"
-    : `${experienceMonths === 1 ? "month" : "months"} of professional experience`;
+  const experienceDuration = formatExperienceDuration(experienceMonths, isBn);
+  const experienceSuffix = isBn ? "প্রফেশনাল অভিজ্ঞতা" : "of professional experience";
 
   const heroHello = siteConfig ? (isBn ? siteConfig.heroHelloBn : siteConfig.heroHelloEn) : t("hero.based", "Based in San Francisco");
   const heroIam = siteConfig ? (isBn ? siteConfig.heroIamBn : siteConfig.heroIamEn) : isBn ? "আমি" : "I am";
@@ -214,8 +241,8 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-secondary" />
               </span>
               <span>
-                <strong className="font-extrabold text-secondary tracking-wide">{experienceNumber}+</strong>{" "}
-                <span className="text-on-surface font-medium">{experienceLabel}</span>
+                <strong className="font-extrabold text-secondary tracking-wide">{experienceDuration}</strong>{" "}
+                <span className="text-on-surface font-medium">{experienceSuffix}</span>
               </span>
             </div>
 
@@ -324,8 +351,8 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               <div className="glass-panel absolute right-4 bottom-4 z-10 flex items-center gap-2.5 rounded-xl border border-secondary/40 bg-surface/90 px-3.5 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl">
                 <BriefcaseBusiness className="h-4 w-4 shrink-0 text-secondary" />
                 <p className="text-xs font-bold text-on-surface">
-                  <span className="text-secondary font-extrabold">{experienceNumber}+</span>{" "}
-                  <span>{isBn ? "মাসের অভিজ্ঞতা" : "Months Exp."}</span>
+                  <span className="text-secondary font-extrabold">{experienceDuration}</span>{" "}
+                  <span>{isBn ? "অভিজ্ঞতা" : "Exp."}</span>
                 </p>
               </div>
             </div>

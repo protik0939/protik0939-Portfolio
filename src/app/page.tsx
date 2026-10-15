@@ -80,6 +80,9 @@ export default async function Home() {
     institutionBn: item.institutionBn,
     detailsEn: item.detailsEn,
     detailsBn: item.detailsBn,
+    imageUrl: item.imageUrl,
+    link: item.link,
+    isCurrent: item.isCurrent,
   }));
 
   const skills = homeContent.skills.map((item) => ({
@@ -105,6 +108,7 @@ export default async function Home() {
     detailsBn: item.detailsBn,
     imageUrl: item.imageUrl,
     link: item.link,
+    isCurrent: item.isCurrent,
   }));
 
   const projects = homeContent.projects.map((item) => ({

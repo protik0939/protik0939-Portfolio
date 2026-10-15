@@ -17,6 +17,9 @@ type EducationItem = {
   institutionBn: string;
   detailsEn: string;
   detailsBn: string;
+  imageUrl?: string | null;
+  link?: string | null;
+  isCurrent?: boolean | null;
 };
 
 type ExperienceItem = {
@@ -31,6 +34,7 @@ type ExperienceItem = {
   detailsBn: string;
   imageUrl?: string | null;
   link?: string | null;
+  isCurrent?: boolean | null;
 };
 
 type EducationExperienceSectionProps = {
@@ -69,29 +73,80 @@ export default function EducationExperienceSection({ educations = [], experience
                       institutionBn: "অ্যাডমিন প্যানেল থেকে আপডেট করুন",
                       detailsEn: "",
                       detailsBn: "",
+                      imageUrl: null,
+                      link: null,
+                      isCurrent: false,
                     },
                   ]
-              ).map((item, index) => {
+              ).map((item) => {
                 const degree = language === "bn" ? item.degreeBn : item.degreeEn;
                 const subject = language === "bn" ? item.subjectBn : item.subjectEn;
                 const institution = language === "bn" ? item.institutionBn : item.institutionEn;
                 const result = language === "bn" ? item.resultBn : item.resultEn;
                 const details = language === "bn" ? item.detailsBn : item.detailsEn;
+                const isStudyingCurrent = Boolean(item.isCurrent);
+                const title = subject ? `${degree} (${subject})` : degree;
 
                 return (
-                  <div key={item.id} className="relative border-l-2 border-outline-variant/30 pl-8">
+                  <div key={item.id} className="group relative border-l-2 border-outline-variant/30 pl-8 transition-colors">
+                    {/* Status Dot: colored and glowing when currently studying, normal outline otherwise */}
                     <div
-                      className={`absolute top-0 -left-2.25 h-4 w-4 rounded-full ${
-                        index === 0
-                          ? "bg-primary shadow-[0_0_10px_rgba(175,136,255,0.5)]"
-                          : "bg-outline"
+                      className={`absolute top-0 -left-2.25 h-4 w-4 rounded-full transition-transform duration-300 group-hover:scale-125 ${
+                        isStudyingCurrent
+                          ? "bg-primary shadow-[0_0_12px_rgba(175,136,255,0.7)] animate-pulse"
+                          : "bg-outline group-hover:bg-primary/60"
                       }`}
                     />
-                    {item.yearLabel ? <span className="mb-2 block text-sm text-on-surface-variant">{item.yearLabel}</span> : null}
-                    <h4 className="mb-1 text-xl font-bold text-on-surface">{subject ? `${degree} (${subject})` : degree}</h4>
-                    <p className="text-on-surface-variant">{institution}</p>
-                    {result ? <p className="mt-1 text-sm text-on-surface-variant">{result}</p> : null}
-                    {details ? <p className="mt-1 text-sm text-on-surface-variant">{details}</p> : null}
+
+                    {/* Year Label + Currently Studying Badge */}
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      {item.yearLabel ? <span className="text-sm font-medium text-on-surface-variant">{item.yearLabel}</span> : null}
+                      {isStudyingCurrent ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                          {language === "bn" ? "বর্তমান শিক্ষার্থী" : "Currently Studying"}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-start gap-3.5">
+                      {item.imageUrl ? (
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:border-primary/50">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.imageUrl}
+                            alt={institution || degree}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="min-w-0 flex-1">
+                        <h4 className="mb-1 text-xl font-bold text-on-surface">
+                          {item.link ? (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group/link inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-primary focus-visible:underline focus-visible:outline-none"
+                              title={language === "bn" ? "নতুন ট্যাবে ওয়েবসাইট দেখুন" : "Visit website in new tab"}
+                            >
+                              <span className="transition-colors duration-200 hover:text-primary">{title}</span>
+                              <ExternalLink className="h-4 w-4 shrink-0 opacity-60 transition-all duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 group-hover/link:opacity-100 group-hover/link:text-primary" />
+                            </a>
+                          ) : (
+                            <span className="transition-colors duration-200 hover:text-primary cursor-default">
+                              {title}
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-on-surface-variant font-medium">{institution}</p>
+                        {result ? <p className="mt-1 text-sm text-on-surface-variant">{result}</p> : null}
+                      </div>
+                    </div>
+
+                    {details ? <p className="mt-2 text-sm text-on-surface-variant/90 leading-relaxed">{details}</p> : null}
                   </div>
                 );
               })}
@@ -120,24 +175,37 @@ export default function EducationExperienceSection({ educations = [], experience
                       detailsBn: "",
                       imageUrl: null,
                       link: null,
+                      isCurrent: false,
                     },
                   ]
-              ).map((item, index) => {
+              ).map((item) => {
                 const title = language === "bn" ? item.titleBn : item.titleEn;
                 const company = language === "bn" ? item.companyBn : item.companyEn;
                 const period = language === "bn" ? item.periodBn : item.periodEn;
                 const details = language === "bn" ? item.detailsBn : item.detailsEn;
+                const isWorkingCurrent = Boolean(item.isCurrent);
 
                 return (
                   <div key={item.id} className="group relative border-l-2 border-outline-variant/30 pl-8 transition-colors">
+                    {/* Status Dot: colored and glowing when currently working, normal outline otherwise */}
                     <div
                       className={`absolute top-0 -left-2.25 h-4 w-4 rounded-full transition-transform duration-300 group-hover:scale-125 ${
-                        index === 0
-                          ? "bg-secondary shadow-[0_0_10px_rgba(60,221,199,0.5)]"
+                        isWorkingCurrent
+                          ? "bg-secondary shadow-[0_0_12px_rgba(60,221,199,0.7)] animate-pulse"
                           : "bg-outline group-hover:bg-secondary group-hover:shadow-[0_0_8px_rgba(60,221,199,0.4)]"
                       }`}
                     />
-                    {period ? <span className="mb-2 block text-sm font-medium text-on-surface-variant">{period}</span> : null}
+
+                    {/* Period + Currently Working Badge */}
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      {period ? <span className="text-sm font-medium text-on-surface-variant">{period}</span> : null}
+                      {isWorkingCurrent ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary/40 bg-secondary/10 px-2.5 py-0.5 text-[11px] font-semibold text-secondary">
+                          <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
+                          {language === "bn" ? "বর্তমান কর্মস্থল" : "Currently Working"}
+                        </span>
+                      ) : null}
+                    </div>
 
                     <div className="flex items-start gap-3.5">
                       {item.imageUrl ? (

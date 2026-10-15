@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Plus, Search, Settings, Tag, Trash2, Users, X } from "lucide-react";
 import {
   AVAILABLE_BUTTON_ICONS,
   parseCustomButtons,
@@ -115,6 +115,8 @@ type EducationForm = {
   detailsBn: string;
   imageUrl: string;
   logoUrl: string;
+  link: string;
+  isCurrent: boolean;
   sortOrder: number;
   isPublished: boolean;
 };
@@ -155,6 +157,7 @@ type ExperienceForm = {
   detailsBn: string;
   imageUrl: string;
   link: string;
+  isCurrent: boolean;
   sortOrder: number;
   isPublished: boolean;
 };
@@ -295,6 +298,8 @@ const DEFAULT_EDUCATION: EducationForm = {
   detailsBn: "",
   imageUrl: "",
   logoUrl: "",
+  link: "",
+  isCurrent: false,
   sortOrder: 0,
   isPublished: true,
 };
@@ -335,6 +340,7 @@ const DEFAULT_EXPERIENCE: ExperienceForm = {
   detailsBn: "",
   imageUrl: "",
   link: "",
+  isCurrent: false,
   sortOrder: 0,
   isPublished: true,
 };
@@ -549,7 +555,7 @@ function WysiwygField({ label, value, onChange }: Readonly<WysiwygFieldProps>) {
       </div>
       <div
         ref={editorRef}
-        className="wysiwyg-editor min-h-[180px] rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
+        className="wysiwyg-editor min-h-45 rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
         contentEditable
         data-placeholder="Write rich details here..."
         onInput={handleInput}
@@ -590,6 +596,366 @@ function ImageUrlField({ label, value, onChange, onFileUpload, isUploading }: Re
   );
 }
 
+type BlogAuthorSectionProps = {
+  authorNameEn: string;
+  authorNameBn: string;
+  teamMembers: EntityItem[];
+  onChangeEn: (value: string) => void;
+  onChangeBn: (value: string) => void;
+};
+
+function BlogAuthorSection({
+  authorNameEn,
+  authorNameBn,
+  teamMembers,
+  onChangeEn,
+  onChangeBn,
+}: Readonly<BlogAuthorSectionProps>) {
+  const [userCustomOverride, setUserCustomOverride] = useState<boolean | null>(null);
+
+  const matchedMember = useMemo(() => {
+    const trimmedEn = authorNameEn.trim().toLowerCase();
+    const trimmedBn = authorNameBn.trim();
+
+    if (!trimmedEn && !trimmedBn) return null;
+
+    return (
+      teamMembers.find((m) => {
+        const nameEn = String(m.nameEn ?? "").trim().toLowerCase();
+        const nameBn = String(m.nameBn ?? "").trim();
+        return (trimmedEn && nameEn === trimmedEn) || (trimmedBn && nameBn === trimmedBn);
+      }) ?? null
+    );
+  }, [authorNameEn, authorNameBn, teamMembers]);
+
+  const isCustomMode =
+    userCustomOverride !== null
+      ? userCustomOverride
+      : !matchedMember && Boolean(authorNameEn.trim() || authorNameBn.trim());
+
+  const selectedMemberId = matchedMember ? String(matchedMember.id ?? matchedMember.memberCode ?? "") : "";
+
+  const handleSelectTeamMember = (memberId: string) => {
+    if (!memberId) {
+      setUserCustomOverride(false);
+      return;
+    }
+    if (memberId === "__custom__") {
+      setUserCustomOverride(true);
+      return;
+    }
+
+    const member = teamMembers.find((m) => String(m.id ?? m.memberCode) === memberId);
+    if (member) {
+      setUserCustomOverride(false);
+      onChangeEn(String(member.nameEn ?? ""));
+      onChangeBn(String(member.nameBn ?? ""));
+    }
+  };
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-outline-variant/30 bg-surface-container/60 p-4 sm:p-5 md:col-span-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-2.5">
+        <div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-on-surface">Blog Author</h3>
+          </div>
+          <p className="mt-0.5 text-xs text-on-surface-variant">
+            Fetch author info from registered Team Members (EN &amp; BN) or configure a custom author name.
+          </p>
+        </div>
+        <div className="inline-flex rounded-xl border border-outline-variant/30 bg-surface-container-high p-1 text-xs font-medium">
+          <button
+            type="button"
+            onClick={() => setUserCustomOverride(false)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              !isCustomMode
+                ? "bg-primary text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            Team Member
+          </button>
+          <button
+            type="button"
+            onClick={() => setUserCustomOverride(true)}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition ${
+              isCustomMode
+                ? "bg-primary text-on-primary shadow-sm"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Custom Setting
+          </button>
+        </div>
+      </div>
+
+      {!isCustomMode ? (
+        <div className="space-y-2">
+          <label className="block space-y-1.5 text-sm">
+            <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+              Select Team Member
+            </span>
+            <select
+              value={selectedMemberId}
+              onChange={(e) => handleSelectTeamMember(e.target.value)}
+              className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2.5 text-sm text-on-surface outline-none focus:border-primary transition"
+            >
+              <option value="">-- Choose Team Member as Author --</option>
+              {teamMembers.map((member) => {
+                const id = String(member.id ?? member.memberCode ?? "");
+                const nameEn = String(member.nameEn ?? "");
+                const nameBn = String(member.nameBn ?? "");
+                const code = String(member.memberCode ?? "");
+                return (
+                  <option key={id} value={id}>
+                    {nameEn} {nameBn ? `(${nameBn})` : ""} {code ? `— ${code}` : ""}
+                  </option>
+                );
+              })}
+              <option value="__custom__">⚙️ Custom Setting (Manual Author Entry)</option>
+            </select>
+          </label>
+          {teamMembers.length === 0 ? (
+            <p className="text-xs text-amber-300/80">
+              No team members registered yet. You can create team members in the Team Members tab or use Custom Setting below.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-on-surface-variant">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-primary">Custom Setting Active</span>
+            <button
+              type="button"
+              onClick={() => setUserCustomOverride(false)}
+              className="text-primary underline hover:text-primary-hover"
+            >
+              Select from Team Members instead
+            </button>
+          </div>
+          <p className="mt-1">Enter your custom author name below for English and Bengali.</p>
+        </div>
+      )}
+
+      <div className="grid gap-3 pt-1 sm:grid-cols-2">
+        <InputField
+          label="Author Name (EN)"
+          value={authorNameEn}
+          onChange={(val) => {
+            onChangeEn(val);
+            if (!isCustomMode) {
+              const currentM = teamMembers.find((m) => String(m.id ?? m.memberCode) === selectedMemberId);
+              if (!currentM || String(currentM.nameEn ?? "").trim().toLowerCase() !== val.trim().toLowerCase()) {
+                setUserCustomOverride(true);
+              }
+            }
+          }}
+        />
+        <InputField
+          label="Author Name (BN)"
+          value={authorNameBn}
+          onChange={(val) => {
+            onChangeBn(val);
+            if (!isCustomMode) {
+              const currentM = teamMembers.find((m) => String(m.id ?? m.memberCode) === selectedMemberId);
+              if (!currentM || String(currentM.nameBn ?? "").trim() !== val.trim()) {
+                setUserCustomOverride(true);
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+type BlogTagsFieldProps = {
+  label: string;
+  langLabel: "EN" | "BN";
+  value: string;
+  existingTags: string[];
+  onChange: (value: string) => void;
+};
+
+function BlogTagsField({
+  label,
+  langLabel,
+  value,
+  existingTags,
+  onChange,
+}: Readonly<BlogTagsFieldProps>) {
+  const [newTagInput, setNewTagInput] = useState("");
+
+  const selectedTags = useMemo(() => {
+    return value
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+  }, [value]);
+
+  const selectedKeys = useMemo(() => {
+    return new Set(selectedTags.map((t) => t.toLowerCase()));
+  }, [selectedTags]);
+
+  const availableTags = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+
+    // Add existing tags first
+    for (const tag of existingTags) {
+      const trimmed = tag.trim();
+      const key = trimmed.toLowerCase();
+      if (trimmed && !seen.has(key)) {
+        seen.add(key);
+        list.push(trimmed);
+      }
+    }
+
+    // Include any current tags if not already present
+    for (const tag of selectedTags) {
+      const trimmed = tag.trim();
+      const key = trimmed.toLowerCase();
+      if (trimmed && !seen.has(key)) {
+        seen.add(key);
+        list.push(trimmed);
+      }
+    }
+
+    return list.sort((a, b) =>
+      langLabel === "BN" ? a.localeCompare(b, "bn-BD") : a.localeCompare(b, "en-US")
+    );
+  }, [existingTags, selectedTags, langLabel]);
+
+  const handleToggleTag = (tagToToggle: string) => {
+    const trimmed = tagToToggle.trim();
+    if (!trimmed) return;
+
+    if (selectedKeys.has(trimmed.toLowerCase())) {
+      const next = selectedTags.filter((t) => t.toLowerCase() !== trimmed.toLowerCase());
+      onChange(next.join(", "));
+    } else {
+      const next = [...selectedTags, trimmed];
+      onChange(next.join(", "));
+    }
+  };
+
+  const handleAddNewTag = () => {
+    const trimmed = newTagInput.trim();
+    if (!trimmed) return;
+
+    if (!selectedKeys.has(trimmed.toLowerCase())) {
+      const next = [...selectedTags, trimmed];
+      onChange(next.join(", "));
+    }
+    setNewTagInput("");
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-outline-variant/30 bg-surface-container-low/60 p-3.5 sm:p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/20 pb-2">
+        <div className="flex items-center gap-1.5">
+          <Tag className="h-3.5 w-3.5 text-primary" />
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-on-surface">
+            {label}
+          </h4>
+        </div>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          {selectedTags.length} {selectedTags.length === 1 ? "tag" : "tags"} selected
+        </span>
+      </div>
+
+      {/* Add New Tag Bar */}
+      <div className="space-y-1">
+        <label className="text-[11px] font-medium uppercase tracking-wider text-on-surface-variant">
+          {langLabel === "BN" ? "নতুন ট্যাগ যোগ করুন" : "Add New Tag"}
+        </label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newTagInput}
+            placeholder={
+              langLabel === "BN" ? "যেমন: ওয়েব ডেভেলপমেন্ট, রিঅ্যাক্ট..." : "e.g. Next.js, Cloud, React..."
+            }
+            onChange={(e) => setNewTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddNewTag();
+              }
+            }}
+            className="flex-1 rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-1.5 text-xs text-on-surface outline-none focus:border-primary transition"
+          />
+          <button
+            type="button"
+            onClick={handleAddNewTag}
+            disabled={!newTagInput.trim()}
+            className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-40 transition shadow-sm"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {langLabel === "BN" ? "যোগ করুন" : "Add"}
+          </button>
+        </div>
+      </div>
+
+      {/* Available / Existing Tags Chip Pool */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-on-surface-variant">
+            {langLabel === "BN" ? "উপলব্ধ ট্যাগ (ক্লিক করে নির্বাচন/বাতিল করুন)" : "Available Tags (Click to select/unselect)"}
+          </span>
+          <span className="text-[11px] text-on-surface-variant">
+            {availableTags.length} total
+          </span>
+        </div>
+        {availableTags.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-outline-variant/40 bg-surface-container-low/40 px-3 py-2 text-xs italic text-on-surface-variant">
+            {langLabel === "BN"
+              ? "কোনো বিদ্যমান ট্যাগ পাওয়া যায়নি। উপরে নতুন ট্যাগ যোগ করুন।"
+              : "No existing tags found yet. Add your first tag above."}
+          </p>
+        ) : (
+          <div className="flex max-h-36 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-outline-variant/20 bg-surface-container-lowest/50 p-2">
+            {availableTags.map((tag) => {
+              const isSelected = selectedKeys.has(tag.toLowerCase());
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleToggleTag(tag)}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition ${
+                    isSelected
+                      ? "border border-primary bg-primary text-on-primary font-medium shadow-sm hover:opacity-90"
+                      : "border border-outline-variant/30 bg-surface-container-high/70 text-on-surface-variant hover:border-outline-variant hover:text-on-surface hover:bg-surface-container-highest"
+                  }`}
+                >
+                  {isSelected ? (
+                    <Check className="h-3 w-3 stroke-[2.5]" />
+                  ) : (
+                    <Plus className="h-3 w-3 opacity-60" />
+                  )}
+                  <span>{tag}</span>
+                  {isSelected ? <X className="ml-0.5 h-3 w-3 opacity-60 hover:opacity-100" /> : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Direct Comma-separated Text Input */}
+      <InputField
+        label={langLabel === "BN" ? "সরাসরি কমা-বিভক্ত ট্যাগ" : "Direct comma-separated tags"}
+        value={value}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
 export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps>) {
   const [activeTab, setActiveTab] = useState<AdminTab>("site");
   const imageBbApiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY ?? "";
@@ -621,6 +987,10 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   const [cropExperienceFile, setCropExperienceFile] = useState<File | null>(null);
   const [isCroppingExperience, setIsCroppingExperience] = useState(false);
   const [isProcessingExperienceCrop, setIsProcessingExperienceCrop] = useState(false);
+
+  const [cropEducationFile, setCropEducationFile] = useState<File | null>(null);
+  const [isCroppingEducation, setIsCroppingEducation] = useState(false);
+  const [isProcessingEducationCrop, setIsProcessingEducationCrop] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -675,6 +1045,44 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     setTeamMembers(Array.isArray(membersPayload) ? membersPayload : []);
     setSkills(Array.isArray(skillsPayload) ? skillsPayload : []);
   }, []);
+
+  const loadBlogOptions = useCallback(async () => {
+    try {
+      const response = await fetch(ENTITY_CONFIG["team-members"].endpoint, { cache: "no-store" });
+      const payload = await readJson<EntityItem[]>(response);
+      if (response.ok && Array.isArray(payload)) {
+        setTeamMembers(payload);
+      }
+    } catch {
+      // Keep existing teamMembers if fetch fails
+    }
+  }, []);
+
+  const existingTagsEn = useMemo(() => {
+    const set = new Set<string>();
+    blogs.forEach((b) => {
+      const raw = String(b.tagsEn ?? "");
+      raw
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0)
+        .forEach((t) => set.add(t));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [blogs]);
+
+  const existingTagsBn = useMemo(() => {
+    const set = new Set<string>();
+    blogs.forEach((b) => {
+      const raw = String(b.tagsBn ?? "");
+      raw
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0)
+        .forEach((t) => set.add(t));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "bn-BD"));
+  }, [blogs]);
 
   const uploadImageToImageBb = useCallback(
     async (file: File) => {
@@ -740,6 +1148,26 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setError(msg);
       } finally {
         setIsProcessingExperienceCrop(false);
+      }
+    },
+    [uploadImageToImageBb],
+  );
+
+  const handleEducationCropComplete = useCallback(
+    async (croppedFile: File) => {
+      setIsProcessingEducationCrop(true);
+      setError("");
+      try {
+        const url = await uploadImageToImageBb(croppedFile);
+        setEducationForm((prev) => ({ ...prev, imageUrl: url }));
+        setMessage("Education logo cropped (1:1, 150x150 WebP) and uploaded to ImageBB.");
+        setIsCroppingEducation(false);
+        setCropEducationFile(null);
+      } catch (cropErr) {
+        const msg = cropErr instanceof Error ? cropErr.message : "Failed to upload cropped image.";
+        setError(msg);
+      } finally {
+        setIsProcessingEducationCrop(false);
       }
     },
     [uploadImageToImageBb],
@@ -921,6 +1349,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           detailsBn: String(first.detailsBn ?? ""),
           imageUrl: String(first.imageUrl ?? ""),
           logoUrl: String(first.logoUrl ?? ""),
+          link: String(first.link ?? ""),
+          isCurrent: Boolean(first.isCurrent ?? false),
           sortOrder: Number(first.sortOrder ?? 0),
           isPublished: Boolean(first.isPublished ?? true),
         });
@@ -991,6 +1421,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           detailsBn: String(first.detailsBn ?? ""),
           imageUrl: String(first.imageUrl ?? ""),
           link: String(first.link ?? ""),
+          isCurrent: Boolean(first.isCurrent ?? false),
           sortOrder: Number(first.sortOrder ?? 0),
           isPublished: Boolean(first.isPublished ?? true),
         });
@@ -1074,6 +1505,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           await loadContactMessages();
         } else if (activeTab === "projects") {
           await Promise.all([loadEntity("projects"), loadProjectOptions()]);
+        } else if (activeTab === "blogs") {
+          await Promise.all([loadEntity("blogs"), loadBlogOptions()]);
         } else if (activeTab !== "security") {
           await loadEntity(activeTab);
         }
@@ -1086,7 +1519,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     };
 
     void run();
-  }, [activeTab, loadContactMessages, loadEntity, loadProjectOptions, loadSiteConfig]);
+  }, [activeTab, loadBlogOptions, loadContactMessages, loadEntity, loadProjectOptions, loadSiteConfig]);
 
   useEffect(() => {
     if (activeTab !== "projects") {
@@ -1247,6 +1680,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           detailsBn: educationForm.detailsBn,
           imageUrl: educationForm.imageUrl,
           logoUrl: educationForm.logoUrl,
+          link: educationForm.link,
+          isCurrent: educationForm.isCurrent,
           sortOrder: educationForm.sortOrder,
           isPublished: educationForm.isPublished,
         };
@@ -1290,6 +1725,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           detailsBn: experienceForm.detailsBn,
           imageUrl: experienceForm.imageUrl,
           link: experienceForm.link,
+          isCurrent: experienceForm.isCurrent,
           sortOrder: experienceForm.sortOrder,
           isPublished: experienceForm.isPublished,
         };
@@ -1438,6 +1874,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         detailsBn: String(item.detailsBn ?? ""),
         imageUrl: String(item.imageUrl ?? ""),
         logoUrl: String(item.logoUrl ?? ""),
+        link: String(item.link ?? ""),
+        isCurrent: Boolean(item.isCurrent ?? false),
         sortOrder: Number(item.sortOrder ?? 0),
         isPublished: Boolean(item.isPublished ?? true),
       });
@@ -1487,6 +1925,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         detailsBn: String(item.detailsBn ?? ""),
         imageUrl: String(item.imageUrl ?? ""),
         link: String(item.link ?? ""),
+        isCurrent: Boolean(item.isCurrent ?? false),
         sortOrder: Number(item.sortOrder ?? 0),
         isPublished: Boolean(item.isPublished ?? true),
       });
@@ -1893,7 +2332,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                 >
                   + New Record
                 </button>
-                <div className="mt-3 max-h-[350px] space-y-2 overflow-y-auto">
+                <div className="mt-3 max-h-87.5 space-y-2 overflow-y-auto">
                   {currentList.map((item) => {
                     const id = String(item.id ?? "");
                     const selectedId =
@@ -1946,37 +2385,88 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     <InputField label="Result (BN)" value={educationForm.resultBn} onChange={(value) => setEducationForm((p) => ({ ...p, resultBn: value }))} />
                     <InputField label="Institution (EN)" value={educationForm.institutionEn} onChange={(value) => setEducationForm((p) => ({ ...p, institutionEn: value }))} />
                     <InputField label="Institution (BN)" value={educationForm.institutionBn} onChange={(value) => setEducationForm((p) => ({ ...p, institutionBn: value }))} />
-                    <ImageUrlField
-                      label="Image URL"
-                      value={educationForm.imageUrl}
-                      onChange={(value) => setEducationForm((p) => ({ ...p, imageUrl: value }))}
-                      isUploading={uploadingField === "education.imageUrl"}
-                      onFileUpload={(file) => {
-                        void handleImageFieldUpload(file, "education.imageUrl", (url) => {
-                          setEducationForm((p) => ({ ...p, imageUrl: url }));
-                        });
-                      }}
-                    />
-                    <ImageUrlField
-                      label="Logo URL"
-                      value={educationForm.logoUrl}
-                      onChange={(value) => setEducationForm((p) => ({ ...p, logoUrl: value }))}
-                      isUploading={uploadingField === "education.logoUrl"}
-                      onFileUpload={(file) => {
-                        void handleImageFieldUpload(file, "education.logoUrl", (url) => {
-                          setEducationForm((p) => ({ ...p, logoUrl: url }));
-                        });
-                      }}
-                    />
-                    <InputField label="Sort Order" type="number" value={educationForm.sortOrder} onChange={(value) => setEducationForm((p) => ({ ...p, sortOrder: toNumber(value) }))} />
-                    <label className="mt-6 inline-flex items-center gap-2 text-sm text-on-surface">
-                      <input
-                        type="checkbox"
-                        checked={educationForm.isPublished}
-                        onChange={(event) => setEducationForm((p) => ({ ...p, isPublished: event.target.checked }))}
+                    {/* Education Image Upload with 1:1 Crop */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold text-on-surface">Institution Logo / Image (1:1 Ratio)</label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {educationForm.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={educationForm.imageUrl}
+                            alt="Education logo preview"
+                            className="h-14 w-14 rounded-xl border border-outline-variant/40 bg-surface-container object-cover shadow-sm"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-outline-variant/50 bg-surface-container-low text-[10px] text-on-surface-variant text-center">
+                            No logo
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-50 space-y-1.5">
+                          <InputField
+                            label="Image URL (ImageBB or direct link)"
+                            value={educationForm.imageUrl}
+                            onChange={(value) => setEducationForm((p) => ({ ...p, imageUrl: value }))}
+                          />
+                          <div className="flex items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(event) => {
+                                  const selected = event.target.files?.[0];
+                                  if (selected) {
+                                    setCropEducationFile(selected);
+                                    setIsCroppingEducation(true);
+                                  }
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                              Upload & Crop Image (1:1)
+                            </label>
+                            {educationForm.imageUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setEducationForm((p) => ({ ...p, imageUrl: "" }))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Remove
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Education Link */}
+                    <div className="md:col-span-2">
+                      <InputField
+                        label="Link / Website URL (optional - opens in new tab when degree is tapped)"
+                        value={educationForm.link}
+                        onChange={(value) => setEducationForm((p) => ({ ...p, link: value }))}
                       />
-                      Published
-                    </label>
+                    </div>
+
+                    <InputField label="Sort Order" type="number" value={educationForm.sortOrder} onChange={(value) => setEducationForm((p) => ({ ...p, sortOrder: toNumber(value) }))} />
+                    <div className="mt-6 flex flex-wrap items-center gap-6">
+                      <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                        <input
+                          type="checkbox"
+                          checked={educationForm.isCurrent}
+                          onChange={(event) => setEducationForm((p) => ({ ...p, isCurrent: event.target.checked }))}
+                        />
+                        Currently studying here
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                        <input
+                          type="checkbox"
+                          checked={educationForm.isPublished}
+                          onChange={(event) => setEducationForm((p) => ({ ...p, isPublished: event.target.checked }))}
+                        />
+                        Published
+                      </label>
+                    </div>
                     <TextareaField label="Details (EN)" value={educationForm.detailsEn} rows={4} onChange={(value) => setEducationForm((p) => ({ ...p, detailsEn: value }))} />
                     <TextareaField label="Details (BN)" value={educationForm.detailsBn} rows={4} onChange={(value) => setEducationForm((p) => ({ ...p, detailsBn: value }))} />
                   </div>
@@ -2115,14 +2605,24 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     </div>
 
                     <InputField label="Sort Order" type="number" value={experienceForm.sortOrder} onChange={(value) => setExperienceForm((p) => ({ ...p, sortOrder: toNumber(value) }))} />
-                    <label className="mt-6 inline-flex items-center gap-2 text-sm text-on-surface">
-                      <input
-                        type="checkbox"
-                        checked={experienceForm.isPublished}
-                        onChange={(event) => setExperienceForm((p) => ({ ...p, isPublished: event.target.checked }))}
-                      />
-                      Published
-                    </label>
+                    <div className="mt-6 flex flex-wrap items-center gap-6">
+                      <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                        <input
+                          type="checkbox"
+                          checked={experienceForm.isCurrent}
+                          onChange={(event) => setExperienceForm((p) => ({ ...p, isCurrent: event.target.checked }))}
+                        />
+                        Currently working here
+                      </label>
+                      <label className="inline-flex items-center gap-2 text-sm text-on-surface">
+                        <input
+                          type="checkbox"
+                          checked={experienceForm.isPublished}
+                          onChange={(event) => setExperienceForm((p) => ({ ...p, isPublished: event.target.checked }))}
+                        />
+                        Published
+                      </label>
+                    </div>
                     <TextareaField label="Details (EN)" value={experienceForm.detailsEn} rows={4} onChange={(value) => setExperienceForm((p) => ({ ...p, detailsEn: value }))} />
                     <TextareaField label="Details (BN)" value={experienceForm.detailsBn} rows={4} onChange={(value) => setExperienceForm((p) => ({ ...p, detailsBn: value }))} />
                   </div>
@@ -2416,8 +2916,6 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     <InputField label="Slug" value={blogForm.slug} onChange={(value) => setBlogForm((p) => ({ ...p, slug: value }))} />
                     <InputField label="Title (EN)" value={blogForm.titleEn} onChange={(value) => setBlogForm((p) => ({ ...p, titleEn: value }))} />
                     <InputField label="Title (BN)" value={blogForm.titleBn} onChange={(value) => setBlogForm((p) => ({ ...p, titleBn: value }))} />
-                    <InputField label="Author (EN)" value={blogForm.authorNameEn} onChange={(value) => setBlogForm((p) => ({ ...p, authorNameEn: value }))} />
-                    <InputField label="Author (BN)" value={blogForm.authorNameBn} onChange={(value) => setBlogForm((p) => ({ ...p, authorNameBn: value }))} />
                     <InputField label="Read Time (minutes)" type="number" value={blogForm.timeToReadMinutes} onChange={(value) => setBlogForm((p) => ({ ...p, timeToReadMinutes: toNumber(value) }))} />
                     <InputField label="Uploaded At" type="datetime-local" value={blogForm.uploadedAt} onChange={(value) => setBlogForm((p) => ({ ...p, uploadedAt: value }))} />
                     <InputField label="Sort Order" type="number" value={blogForm.sortOrder} onChange={(value) => setBlogForm((p) => ({ ...p, sortOrder: toNumber(value) }))} />
@@ -2432,8 +2930,6 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                         });
                       }}
                     />
-                    <InputField label="Tags (EN)" value={blogForm.tagsEn} onChange={(value) => setBlogForm((p) => ({ ...p, tagsEn: value }))} />
-                    <InputField label="Tags (BN)" value={blogForm.tagsBn} onChange={(value) => setBlogForm((p) => ({ ...p, tagsBn: value }))} />
                     <label className="mt-6 inline-flex items-center gap-2 text-sm text-on-surface">
                       <input
                         type="checkbox"
@@ -2442,6 +2938,44 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                       />
                       Published
                     </label>
+
+                    {/* Blog Author Section with Team Members Fetch & Custom Setting Option */}
+                    <BlogAuthorSection
+                      authorNameEn={blogForm.authorNameEn}
+                      authorNameBn={blogForm.authorNameBn}
+                      teamMembers={teamMembers}
+                      onChangeEn={(value) => setBlogForm((p) => ({ ...p, authorNameEn: value }))}
+                      onChangeBn={(value) => setBlogForm((p) => ({ ...p, authorNameBn: value }))}
+                    />
+
+                    {/* Blog Tags Section with Existing Tags & Add New Tag Option */}
+                    <div className="space-y-4 rounded-2xl border border-outline-variant/30 bg-surface-container/60 p-4 sm:p-5 md:col-span-2">
+                      <div className="border-b border-outline-variant/20 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-primary" />
+                          <h3 className="text-sm font-semibold text-on-surface">Blog Tags</h3>
+                        </div>
+                        <p className="mt-0.5 text-xs text-on-surface-variant">
+                          Select from existing tags across your blogs or add new tags for English and Bengali.
+                        </p>
+                      </div>
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <BlogTagsField
+                          label="Tags (EN)"
+                          langLabel="EN"
+                          value={blogForm.tagsEn}
+                          existingTags={existingTagsEn}
+                          onChange={(value) => setBlogForm((p) => ({ ...p, tagsEn: value }))}
+                        />
+                        <BlogTagsField
+                          label="Tags (BN)"
+                          langLabel="BN"
+                          value={blogForm.tagsBn}
+                          existingTags={existingTagsBn}
+                          onChange={(value) => setBlogForm((p) => ({ ...p, tagsBn: value }))}
+                        />
+                      </div>
+                    </div>
                     <WysiwygField label="Full Details (EN)" value={blogForm.fullDetailsEn} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsEn: value }))} />
                     <WysiwygField label="Full Details (BN)" value={blogForm.fullDetailsBn} onChange={(value) => setBlogForm((p) => ({ ...p, fullDetailsBn: value }))} />
                     <div className="space-y-2 md:col-span-2">
@@ -2762,6 +3296,17 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         }}
         onCropComplete={handleExperienceCropComplete}
         isProcessing={isProcessingExperienceCrop}
+      />
+
+      <ImageCropModal
+        isOpen={isCroppingEducation}
+        imageFile={cropEducationFile}
+        onClose={() => {
+          setIsCroppingEducation(false);
+          setCropEducationFile(null);
+        }}
+        onCropComplete={handleEducationCropComplete}
+        isProcessing={isProcessingEducationCrop}
       />
     </div>
   );

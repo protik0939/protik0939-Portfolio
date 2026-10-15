@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         detailsBn: asString(body.detailsBn ?? "-", "detailsBn"),
         imageUrl: asOptionalString(body.imageUrl),
         logoUrl: asOptionalString(body.logoUrl),
+        link: asOptionalString(body.link),
+        isCurrent: asBoolean(body.isCurrent, false),
         sortOrder: asNumber(body.sortOrder, "sortOrder", 0),
         isPublished: asBoolean(body.isPublished, true),
       },
