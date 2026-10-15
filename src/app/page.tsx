@@ -103,6 +103,8 @@ export default async function Home() {
     periodBn: item.periodBn,
     detailsEn: item.detailsEn,
     detailsBn: item.detailsBn,
+    imageUrl: item.imageUrl,
+    link: item.link,
   }));
 
   const projects = homeContent.projects.map((item) => ({

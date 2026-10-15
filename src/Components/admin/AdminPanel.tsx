@@ -1,6 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowDown, ArrowUp, Plus, Search, Trash2, X } from "lucide-react";
+import {
+  AVAILABLE_BUTTON_ICONS,
+  parseCustomButtons,
+  ProjectButtonIcon,
+  type ProjectCustomButton,
+} from "@/lib/project-buttons";
+import ImageCropModal from "@/Components/admin/ImageCropModal";
 
 type AdminPanelProps = {
   email: string;
@@ -145,6 +153,8 @@ type ExperienceForm = {
   periodBn: string;
   detailsEn: string;
   detailsBn: string;
+  imageUrl: string;
+  link: string;
   sortOrder: number;
   isPublished: boolean;
 };
@@ -168,6 +178,7 @@ type ProjectForm = {
   coverImageUrl: string;
   liveUrl: string;
   memberCodes: string[];
+  customButtons: ProjectCustomButton[];
   sortOrder: number;
   isPublished: boolean;
 };
@@ -322,6 +333,8 @@ const DEFAULT_EXPERIENCE: ExperienceForm = {
   periodBn: "",
   detailsEn: "",
   detailsBn: "",
+  imageUrl: "",
+  link: "",
   sortOrder: 0,
   isPublished: true,
 };
@@ -345,6 +358,7 @@ const DEFAULT_PROJECT: ProjectForm = {
   coverImageUrl: "",
   liveUrl: "",
   memberCodes: [],
+  customButtons: [],
   sortOrder: 0,
   isPublished: true,
 };
@@ -604,6 +618,10 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   const [projectForm, setProjectForm] = useState<ProjectForm>(DEFAULT_PROJECT);
   const [blogForm, setBlogForm] = useState<BlogForm>(DEFAULT_BLOG);
 
+  const [cropExperienceFile, setCropExperienceFile] = useState<File | null>(null);
+  const [isCroppingExperience, setIsCroppingExperience] = useState(false);
+  const [isProcessingExperienceCrop, setIsProcessingExperienceCrop] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -616,6 +634,9 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   const [securityOtp, setSecurityOtp] = useState("");
   const [securityChallengeId, setSecurityChallengeId] = useState("");
   const [maskedSecurityEmail, setMaskedSecurityEmail] = useState("");
+
+  const [iconPickerButtonIndex, setIconPickerButtonIndex] = useState<number | null>(null);
+  const [iconPickerSearch, setIconPickerSearch] = useState("");
 
   const currentEntityTab = useMemo(
     () => (activeTab in ENTITY_CONFIG ? (activeTab as EntityTab) : null),
@@ -699,6 +720,26 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setError(uploadMessage);
       } finally {
         setUploadingField(null);
+      }
+    },
+    [uploadImageToImageBb],
+  );
+
+  const handleExperienceCropComplete = useCallback(
+    async (croppedFile: File) => {
+      setIsProcessingExperienceCrop(true);
+      setError("");
+      try {
+        const url = await uploadImageToImageBb(croppedFile);
+        setExperienceForm((prev) => ({ ...prev, imageUrl: url }));
+        setMessage("Experience logo cropped (1:1, 150x150 WebP) and uploaded to ImageBB.");
+        setIsCroppingExperience(false);
+        setCropExperienceFile(null);
+      } catch (cropErr) {
+        const msg = cropErr instanceof Error ? cropErr.message : "Failed to upload cropped image.";
+        setError(msg);
+      } finally {
+        setIsProcessingExperienceCrop(false);
       }
     },
     [uploadImageToImageBb],
@@ -948,6 +989,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           periodBn: String(first.periodBn ?? ""),
           detailsEn: String(first.detailsEn ?? ""),
           detailsBn: String(first.detailsBn ?? ""),
+          imageUrl: String(first.imageUrl ?? ""),
+          link: String(first.link ?? ""),
           sortOrder: Number(first.sortOrder ?? 0),
           isPublished: Boolean(first.isPublished ?? true),
         });
@@ -981,6 +1024,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           coverImageUrl: String(first.coverImageUrl ?? ""),
           liveUrl: String(first.liveUrl ?? ""),
           memberCodes: Array.isArray(first.memberCodes) ? first.memberCodes.map((v) => String(v)) : [],
+          customButtons: parseCustomButtons(first.customButtons),
           sortOrder: Number(first.sortOrder ?? 0),
           isPublished: Boolean(first.isPublished ?? true),
         });
@@ -1116,6 +1160,52 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     }
   }
 
+  const handleAddCustomButton = () => {
+    setProjectForm((prev) => ({
+      ...prev,
+      customButtons: [
+        ...prev.customButtons,
+        {
+          id: `btn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          labelEn: "",
+          labelBn: "",
+          url: "",
+          color: "#af88ff",
+          icon: "ExternalLink",
+        },
+      ],
+    }));
+  };
+
+  const handleUpdateCustomButton = (index: number, patch: Partial<ProjectCustomButton>) => {
+    setProjectForm((prev) => {
+      const next = [...prev.customButtons];
+      if (next[index]) {
+        next[index] = { ...next[index], ...patch };
+      }
+      return { ...prev, customButtons: next };
+    });
+  };
+
+  const handleRemoveCustomButton = (index: number) => {
+    setProjectForm((prev) => ({
+      ...prev,
+      customButtons: prev.customButtons.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleMoveCustomButton = (fromIndex: number, toIndex: number) => {
+    setProjectForm((prev) => {
+      if (toIndex < 0 || toIndex >= prev.customButtons.length) {
+        return prev;
+      }
+      const next = [...prev.customButtons];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return { ...prev, customButtons: next };
+    });
+  };
+
   async function handleSaveEntity() {
     if (!currentEntityTab) return;
 
@@ -1198,6 +1288,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           periodBn: experienceForm.periodBn,
           detailsEn: experienceForm.detailsEn,
           detailsBn: experienceForm.detailsBn,
+          imageUrl: experienceForm.imageUrl,
+          link: experienceForm.link,
           sortOrder: experienceForm.sortOrder,
           isPublished: experienceForm.isPublished,
         };
@@ -1232,6 +1324,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           coverImageUrl: projectForm.coverImageUrl,
           liveUrl: projectForm.liveUrl,
           memberCodes: projectForm.memberCodes,
+          customButtons: JSON.stringify(projectForm.customButtons),
           sortOrder: projectForm.sortOrder,
           isPublished: projectForm.isPublished,
         };
@@ -1392,6 +1485,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         periodBn: String(item.periodBn ?? ""),
         detailsEn: String(item.detailsEn ?? ""),
         detailsBn: String(item.detailsBn ?? ""),
+        imageUrl: String(item.imageUrl ?? ""),
+        link: String(item.link ?? ""),
         sortOrder: Number(item.sortOrder ?? 0),
         isPublished: Boolean(item.isPublished ?? true),
       });
@@ -1418,6 +1513,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         coverImageUrl: String(item.coverImageUrl ?? ""),
         liveUrl: String(item.liveUrl ?? ""),
         memberCodes: Array.isArray(item.memberCodes) ? item.memberCodes.map((v) => String(v)) : [],
+        customButtons: parseCustomButtons(item.customButtons),
         sortOrder: Number(item.sortOrder ?? 0),
         isPublished: Boolean(item.isPublished ?? true),
       });
@@ -1954,6 +2050,70 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     <InputField label="Company (BN)" value={experienceForm.companyBn} onChange={(value) => setExperienceForm((p) => ({ ...p, companyBn: value }))} />
                     <InputField label="Period (EN)" value={experienceForm.periodEn} onChange={(value) => setExperienceForm((p) => ({ ...p, periodEn: value }))} />
                     <InputField label="Period (BN)" value={experienceForm.periodBn} onChange={(value) => setExperienceForm((p) => ({ ...p, periodBn: value }))} />
+
+                    {/* Experience Image Upload with 1:1 Crop */}
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold text-on-surface">Experience Logo / Image (1:1 Ratio)</label>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {experienceForm.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={experienceForm.imageUrl}
+                            alt="Experience logo preview"
+                            className="h-14 w-14 rounded-xl border border-outline-variant/40 bg-surface-container object-cover shadow-sm"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-outline-variant/50 bg-surface-container-low text-[10px] text-on-surface-variant text-center">
+                            No logo
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-50 space-y-1.5">
+                          <InputField
+                            label="Image URL (ImageBB or direct link)"
+                            value={experienceForm.imageUrl}
+                            onChange={(value) => setExperienceForm((p) => ({ ...p, imageUrl: value }))}
+                          />
+                          <div className="flex items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(event) => {
+                                  const selected = event.target.files?.[0];
+                                  if (selected) {
+                                    setCropExperienceFile(selected);
+                                    setIsCroppingExperience(true);
+                                  }
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                              Upload & Crop Image (1:1)
+                            </label>
+                            {experienceForm.imageUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setExperienceForm((p) => ({ ...p, imageUrl: "" }))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Remove
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Experience Link */}
+                    <div className="md:col-span-2">
+                      <InputField
+                        label="Link / Website URL (optional - opens in new tab when title is tapped)"
+                        value={experienceForm.link}
+                        onChange={(value) => setExperienceForm((p) => ({ ...p, link: value }))}
+                      />
+                    </div>
+
                     <InputField label="Sort Order" type="number" value={experienceForm.sortOrder} onChange={(value) => setExperienceForm((p) => ({ ...p, sortOrder: toNumber(value) }))} />
                     <label className="mt-6 inline-flex items-center gap-2 text-sm text-on-surface">
                       <input
@@ -2057,6 +2217,197 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                         })}
                       </select>
                     </label>
+
+                    {/* Custom Action Buttons Manager */}
+                    <div className="space-y-4 rounded-2xl border border-outline-variant/30 bg-surface-container/60 p-4 sm:p-5 md:col-span-2">
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-3">
+                        <div>
+                          <h3 className="text-sm font-semibold text-on-surface">Custom Action Buttons</h3>
+                          <p className="text-xs text-on-surface-variant">
+                            Add custom links (GitHub, live preview, docs, etc.) with custom colors and selectable icons.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddCustomButton}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/60 hover:bg-primary/20"
+                        >
+                          <Plus className="h-3.5 w-3.5" aria-hidden />
+                          <span>Add Button</span>
+                        </button>
+                      </div>
+
+                      {projectForm.customButtons.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-outline-variant/40 py-6 text-center text-xs text-on-surface-variant">
+                          No custom buttons added yet. Click &quot;Add Button&quot; to add custom links.
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {projectForm.customButtons.map((btn, index) => {
+                            const btnColor = btn.color || "#af88ff";
+
+                            return (
+                              <div
+                                key={btn.id || `custom-btn-${index}`}
+                                className="relative rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 shadow-sm space-y-3"
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/20 pb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="grid h-6 w-6 place-items-center rounded-full bg-surface-container-high text-[11px] font-bold text-on-surface">
+                                      {index + 1}
+                                    </span>
+                                    <span className="text-xs font-semibold text-on-surface">
+                                      {btn.labelEn || btn.labelBn || `Button ${index + 1}`}
+                                    </span>
+
+                                    {/* Live Preview pill */}
+                                    <div
+                                      style={{
+                                        borderColor: `${btnColor}66`,
+                                        color: btnColor,
+                                        backgroundColor: `${btnColor}14`,
+                                      }}
+                                      className="ml-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
+                                    >
+                                      <ProjectButtonIcon name={btn.icon} className="h-3 w-3" style={{ color: btnColor }} />
+                                      <span>{btn.labelEn || btn.labelBn || "Preview"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={index === 0}
+                                      onClick={() => handleMoveCustomButton(index, index - 1)}
+                                      className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-variant disabled:opacity-30"
+                                      title="Move Up"
+                                    >
+                                      <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={index === projectForm.customButtons.length - 1}
+                                      onClick={() => handleMoveCustomButton(index, index + 1)}
+                                      className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-variant disabled:opacity-30"
+                                      title="Move Down"
+                                    >
+                                      <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveCustomButton(index)}
+                                      className="rounded-lg p-1.5 text-error hover:bg-error/10"
+                                      title="Remove Button"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                  <label className="space-y-1 text-xs">
+                                    <span className="text-on-surface font-medium">Button Text (EN)</span>
+                                    <input
+                                      type="text"
+                                      value={btn.labelEn}
+                                      onChange={(e) => handleUpdateCustomButton(index, { labelEn: e.target.value })}
+                                      placeholder="e.g. GitHub Repo"
+                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
+                                    />
+                                  </label>
+
+                                  <label className="space-y-1 text-xs">
+                                    <span className="text-on-surface font-medium">Button Text (BN)</span>
+                                    <input
+                                      type="text"
+                                      value={btn.labelBn}
+                                      onChange={(e) => handleUpdateCustomButton(index, { labelBn: e.target.value })}
+                                      placeholder="যেমন: গিটহাব রিপো"
+                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
+                                    />
+                                  </label>
+
+                                  <label className="space-y-1 text-xs sm:col-span-2">
+                                    <span className="text-on-surface font-medium">Target Link / URL</span>
+                                    <input
+                                      type="url"
+                                      value={btn.url}
+                                      onChange={(e) => handleUpdateCustomButton(index, { url: e.target.value })}
+                                      placeholder="https://..."
+                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  {/* Color Picker */}
+                                  <div className="space-y-1.5 text-xs">
+                                    <span className="text-on-surface font-medium">Button Color</span>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="color"
+                                        value={btn.color.startsWith("#") ? btn.color : "#af88ff"}
+                                        onChange={(e) => handleUpdateCustomButton(index, { color: e.target.value })}
+                                        className="h-8 w-10 cursor-pointer rounded-lg border border-outline-variant/40 bg-transparent p-0.5"
+                                        title="Pick color"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={btn.color}
+                                        onChange={(e) => handleUpdateCustomButton(index, { color: e.target.value })}
+                                        placeholder="#af88ff"
+                                        className="w-24 rounded-xl border border-outline-variant/40 bg-surface-container px-2.5 py-1.5 font-mono text-xs text-on-surface outline-none focus:border-primary"
+                                      />
+                                      <div className="flex flex-wrap gap-1">
+                                        {[
+                                          "#af88ff",
+                                          "#3cddc7",
+                                          "#69f6b8",
+                                          "#3b82f6",
+                                          "#f59e0b",
+                                          "#fd6f85",
+                                          "#e7e5e4",
+                                        ].map((preset) => (
+                                          <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => handleUpdateCustomButton(index, { color: preset })}
+                                            style={{ backgroundColor: preset }}
+                                            className="h-4.5 w-4.5 rounded-full border border-black/30 shadow-xs transition hover:scale-110"
+                                            title={preset}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Icon Picker Trigger */}
+                                  <div className="space-y-1.5 text-xs">
+                                    <span className="text-on-surface font-medium">Button Icon</span>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-1.5 text-xs text-on-surface">
+                                        <ProjectButtonIcon name={btn.icon} className="h-4 w-4 text-primary" />
+                                        <span className="font-medium">{btn.icon || "ExternalLink"}</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setIconPickerButtonIndex(index);
+                                          setIconPickerSearch("");
+                                        }}
+                                        className="rounded-xl border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20"
+                                      >
+                                        Choose Icon...
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : null}
 
@@ -2318,6 +2669,100 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
         </section>
       </div>
+
+      {/* Icon Picker Modal */}
+      {iconPickerButtonIndex !== null ? (
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setIconPickerButtonIndex(null);
+            }
+          }}
+        >
+          <div
+            className="modal-panel glass-panel flex w-full max-w-xl max-h-[85vh] flex-col rounded-3xl border border-outline-variant/30 shadow-2xl backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-outline-variant/20 px-5 py-4">
+              <div>
+                <h3 className="text-base font-semibold text-on-surface">Select Button Icon</h3>
+                <p className="text-xs text-on-surface-variant">Choose an icon representing this action button</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIconPickerButtonIndex(null)}
+                className="inline-flex items-center gap-1 rounded-full border border-outline-variant/50 px-3 py-1 text-xs font-semibold text-on-surface transition hover:bg-surface-variant"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+                <span>Close</span>
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-outline-variant/20">
+              <div className="relative">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  type="text"
+                  value={iconPickerSearch}
+                  onChange={(e) => setIconPickerSearch(e.target.value)}
+                  placeholder="Search icons (e.g. github, code, link, play, docs)..."
+                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low py-2 pr-3 pl-9 text-xs text-on-surface outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {AVAILABLE_BUTTON_ICONS.filter(
+                  (item) =>
+                    item.name.toLowerCase().includes(iconPickerSearch.toLowerCase().trim()) ||
+                    item.label.toLowerCase().includes(iconPickerSearch.toLowerCase().trim()),
+                ).map((item) => {
+                  const isCurrent =
+                    projectForm.customButtons[iconPickerButtonIndex]?.icon.toLowerCase() ===
+                    item.name.toLowerCase();
+
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => {
+                        handleUpdateCustomButton(iconPickerButtonIndex, { icon: item.name });
+                        setIconPickerButtonIndex(null);
+                      }}
+                      className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left text-xs transition ${
+                        isCurrent
+                          ? "border-primary bg-primary/20 text-primary font-semibold"
+                          : "border-outline-variant/30 bg-surface-container-low text-on-surface hover:border-primary/50 hover:bg-surface-container"
+                      }`}
+                    >
+                      <ProjectButtonIcon name={item.name} className="h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1 truncate">
+                        <div className="font-medium truncate">{item.name}</div>
+                        <div className="text-[10px] text-on-surface-variant truncate">{item.label}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <ImageCropModal
+        isOpen={isCroppingExperience}
+        imageFile={cropExperienceFile}
+        onClose={() => {
+          setIsCroppingExperience(false);
+          setCropExperienceFile(null);
+        }}
+        onCropComplete={handleExperienceCropComplete}
+        isProcessing={isProcessingExperienceCrop}
+      />
     </div>
   );
 }

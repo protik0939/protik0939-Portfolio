@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Globe } from "lucide-react";
 import AnimatedBackgroundGlow from "@/Components/AnimatedBackgroundGlow";
 import SubpageTopBar from "@/Components/SubpageTopBar";
+import { parseCustomButtons, ProjectButtonIcon } from "@/lib/project-buttons";
 import {
   getPublishedProjectBySlug,
   getPublishedSkills,
@@ -73,6 +75,8 @@ export default async function ProjectDetailsPage({ params, searchParams }: Proje
     getPublishedSkills(),
     getPublishedTeamMembersByCodes(project.memberCodes),
   ]);
+
+  const customButtons = parseCustomButtons(project.customButtons);
 
   const title = pickLocalized(language, project.titleEn, project.titleBn);
   const details = pickLocalized(language, project.detailsEn, project.detailsBn);
@@ -219,18 +223,44 @@ export default async function ProjectDetailsPage({ params, searchParams }: Proje
                 </section>
               ) : null}
 
-              <div className="mt-8 flex flex-wrap gap-3">
-                {project.liveUrl ? (
-                  <a
-                    href={project.liveUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex rounded-full border border-primary/40 px-5 py-2 text-xs font-semibold tracking-widest text-primary uppercase transition hover:bg-primary/10"
-                  >
-                    {language === "bn" ? "লাইভ প্রজেক্ট" : "Live Project"}
-                  </a>
-                ) : null}
-              </div>
+              {(project.liveUrl || customButtons.length > 0) ? (
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  {project.liveUrl ? (
+                    <a
+                      href={project.liveUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-primary/50 bg-primary/10 px-5 py-2.5 text-xs font-semibold tracking-widest text-primary uppercase transition hover:border-primary hover:bg-primary/20 hover:shadow-lg hover:shadow-primary/10"
+                    >
+                      <Globe className="h-4 w-4" aria-hidden />
+                      <span>{language === "bn" ? "লাইভ প্রজেক্ট" : "Live Project"}</span>
+                    </a>
+                  ) : null}
+
+                  {customButtons.map((button) => {
+                    const label = pickLocalized(language, button.labelEn, button.labelBn || button.labelEn);
+                    const btnColor = button.color || "#af88ff";
+
+                    return (
+                      <a
+                        key={button.id}
+                        href={button.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          borderColor: `${btnColor}66`,
+                          color: btnColor,
+                          backgroundColor: `${btnColor}14`,
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-xs font-semibold tracking-widest uppercase transition-all duration-200 hover:scale-[1.02] hover:brightness-110 hover:shadow-lg"
+                      >
+                        <ProjectButtonIcon name={button.icon} className="h-4 w-4" style={{ color: btnColor }} />
+                        <span>{label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </article>
         </div>

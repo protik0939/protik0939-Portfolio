@@ -47,6 +47,9 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         memberCodes: Array.isArray(body.memberCodes)
           ? body.memberCodes.map((value) => String(value))
           : [],
+        customButtons: typeof body.customButtons === "string"
+          ? body.customButtons
+          : JSON.stringify(body.customButtons ?? []),
         sortOrder: asNumber(body.sortOrder, "sortOrder", 0),
         isPublished: asBoolean(body.isPublished, true),
       },

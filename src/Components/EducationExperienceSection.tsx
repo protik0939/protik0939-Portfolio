@@ -1,7 +1,7 @@
 "use client";
 
 import AnimatedReveal from "@/Components/AnimatedReveal";
-import { Briefcase, GraduationCap } from "lucide-react";
+import { Briefcase, ExternalLink, GraduationCap } from "lucide-react";
 import { useAppUI } from "@/Components/AppUIProvider";
 
 type EducationItem = {
@@ -29,6 +29,8 @@ type ExperienceItem = {
   periodBn: string;
   detailsEn: string;
   detailsBn: string;
+  imageUrl?: string | null;
+  link?: string | null;
 };
 
 type EducationExperienceSectionProps = {
@@ -116,6 +118,8 @@ export default function EducationExperienceSection({ educations = [], experience
                       periodBn: "",
                       detailsEn: "",
                       detailsBn: "",
+                      imageUrl: null,
+                      link: null,
                     },
                   ]
               ).map((item, index) => {
@@ -125,18 +129,53 @@ export default function EducationExperienceSection({ educations = [], experience
                 const details = language === "bn" ? item.detailsBn : item.detailsEn;
 
                 return (
-                  <div key={item.id} className="relative border-l-2 border-outline-variant/30 pl-8">
+                  <div key={item.id} className="group relative border-l-2 border-outline-variant/30 pl-8 transition-colors">
                     <div
-                      className={`absolute top-0 -left-2.25 h-4 w-4 rounded-full ${
+                      className={`absolute top-0 -left-2.25 h-4 w-4 rounded-full transition-transform duration-300 group-hover:scale-125 ${
                         index === 0
                           ? "bg-secondary shadow-[0_0_10px_rgba(60,221,199,0.5)]"
-                          : "bg-outline"
+                          : "bg-outline group-hover:bg-secondary group-hover:shadow-[0_0_8px_rgba(60,221,199,0.4)]"
                       }`}
                     />
-                    {period ? <span className="mb-2 block text-sm text-on-surface-variant">{period}</span> : null}
-                    <h4 className="mb-1 text-xl font-bold text-on-surface">{title}</h4>
-                    <p className="text-on-surface-variant">{company}</p>
-                    {details ? <p className="mt-1 text-sm text-on-surface-variant">{details}</p> : null}
+                    {period ? <span className="mb-2 block text-sm font-medium text-on-surface-variant">{period}</span> : null}
+
+                    <div className="flex items-start gap-3.5">
+                      {item.imageUrl ? (
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-outline-variant/40 bg-surface-container shadow-md transition-transform duration-300 group-hover:scale-105 group-hover:border-secondary/50">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.imageUrl}
+                            alt={company || title}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="min-w-0 flex-1">
+                        <h4 className="mb-1 text-xl font-bold text-on-surface">
+                          {item.link ? (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group/link inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-secondary focus-visible:underline focus-visible:outline-none"
+                              title={language === "bn" ? "নতুন ট্যাবে ওয়েবসাইট দেখুন" : "Visit website in new tab"}
+                            >
+                              <span className="transition-colors duration-200 hover:text-secondary">{title}</span>
+                              <ExternalLink className="h-4 w-4 shrink-0 opacity-60 transition-all duration-200 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 group-hover/link:opacity-100 group-hover/link:text-secondary" />
+                            </a>
+                          ) : (
+                            <span className="transition-colors duration-200 hover:text-secondary cursor-default">
+                              {title}
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-on-surface-variant font-medium">{company}</p>
+                      </div>
+                    </div>
+
+                    {details ? <p className="mt-2 text-sm text-on-surface-variant/90 leading-relaxed">{details}</p> : null}
                   </div>
                 );
               })}

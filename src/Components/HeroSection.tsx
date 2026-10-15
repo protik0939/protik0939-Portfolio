@@ -34,6 +34,34 @@ type HeroSectionProps = {
   };
 };
 
+function calculateExperienceMonths(now: Date = new Date()): number {
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed: 0 = Jan, 6 = Jul, 11 = Dec
+  const currentDate = now.getDate();
+
+  // Start date: July 2026 (year 2026, month index 6)
+  const startYear = 2026;
+  const startMonth = 6;
+
+  // Completed full months from July 2026 to the start of the current month
+  const fullMonths = (currentYear - startYear) * 12 + (currentMonth - startMonth);
+
+  // Total days in the current month
+  const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  // If currently it's less than half of the current month, exclude current month (+0).
+  // If it is half or more of the current month, include the current month (+1).
+  const isHalfOrMore = currentDate >= daysInCurrentMonth / 2;
+  const additionalMonth = isHalfOrMore ? 1 : 0;
+
+  return Math.max(0, fullMonths + additionalMonth);
+}
+
+function toBengaliNumber(num: number): string {
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return String(num).replace(/\d/g, (digit) => bnDigits[Number(digit)] ?? digit);
+}
+
 function normalizeCvSource(raw: string | null | undefined): string | null {
   const value = raw?.trim() ?? "";
   if (!value || value === "#contact") {
@@ -67,6 +95,12 @@ function normalizeCvSource(raw: string | null | undefined): string | null {
 export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionProps>) {
   const { language, t } = useAppUI();
   const isBn = language === "bn";
+
+  const experienceMonths = calculateExperienceMonths();
+  const experienceNumber = isBn ? toBengaliNumber(experienceMonths) : String(experienceMonths);
+  const experienceLabel = isBn
+    ? "মাসের প্রফেশনাল অভিজ্ঞতা"
+    : `${experienceMonths === 1 ? "month" : "months"} of professional experience`;
 
   const heroHello = siteConfig ? (isBn ? siteConfig.heroHelloBn : siteConfig.heroHelloEn) : t("hero.based", "Based in San Francisco");
   const heroIam = siteConfig ? (isBn ? siteConfig.heroIamBn : siteConfig.heroIamEn) : isBn ? "আমি" : "I am";
@@ -173,6 +207,18 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 md:grid-cols-2">
         <AnimatedReveal className="z-10" delay={0.05}>
           <div data-reveal>
+            {/* Dynamic Highlighted Professional Experience Badge */}
+            <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-secondary/40 bg-secondary/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-on-surface shadow-[0_0_20px_rgba(60,221,199,0.18)] backdrop-blur-md transition-all hover:border-secondary/70 hover:shadow-[0_0_25px_rgba(60,221,199,0.3)]">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-secondary" />
+              </span>
+              <span>
+                <strong className="font-extrabold text-secondary tracking-wide">{experienceNumber}+</strong>{" "}
+                <span className="text-on-surface font-medium">{experienceLabel}</span>
+              </span>
+            </div>
+
             <span className="mb-4 block text-sm tracking-widest text-secondary uppercase">{heroBadge}</span>
             <h1 className="mb-6 font-headline text-6xl leading-[0.9] font-extrabold tracking-tighter md:text-8xl">
               {heroNameTop} <br />
@@ -273,6 +319,15 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
                 src={heroImageUrl}
                 alt="Developer portrait"
               />
+
+              {/* Floating Dynamic Experience Highlight Tag */}
+              <div className="glass-panel absolute right-4 bottom-4 z-10 flex items-center gap-2.5 rounded-xl border border-secondary/40 bg-surface/90 px-3.5 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+                <BriefcaseBusiness className="h-4 w-4 shrink-0 text-secondary" />
+                <p className="text-xs font-bold text-on-surface">
+                  <span className="text-secondary font-extrabold">{experienceNumber}+</span>{" "}
+                  <span>{isBn ? "মাসের অভিজ্ঞতা" : "Months Exp."}</span>
+                </p>
+              </div>
             </div>
           </div>
         </AnimatedReveal>

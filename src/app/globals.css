@@ -356,10 +356,11 @@ body::-webkit-scrollbar {
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   isolation: isolate;
   animation: modal-fade-in 180ms ease;
+  overflow-y: auto;
 }
 
 .modal-panel {

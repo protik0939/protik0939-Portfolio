@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAccess } from "@/lib/admin-guard";
-import { asBoolean, asNumber, asString } from "@/lib/content-validation";
+import { asBoolean, asNumber, asOptionalString, asString } from "@/lib/content-validation";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -28,6 +28,8 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         periodBn: asString(body.periodBn, "periodBn"),
         detailsEn: asString(body.detailsEn ?? "-", "detailsEn"),
         detailsBn: asString(body.detailsBn ?? "-", "detailsBn"),
+        imageUrl: asOptionalString(body.imageUrl),
+        link: asOptionalString(body.link),
         sortOrder: asNumber(body.sortOrder, "sortOrder", 0),
         isPublished: asBoolean(body.isPublished, true),
       },
