@@ -6,7 +6,7 @@ export default async function AdminPage() {
   const admin = await getAdminSession();
 
   return (
-    <main className="min-h-screen bg-surface px-6 py-20">
+    <main className={`min-h-screen bg-surface ${admin ? "" : "px-6 py-20"}`}>
       {admin ? (
         <AdminPanel email={admin.email} fullName={admin.fullName} />
       ) : (

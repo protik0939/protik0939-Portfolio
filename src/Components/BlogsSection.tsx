@@ -78,6 +78,7 @@ export default function BlogsSection({ blogs = [], siteConfig = null }: Readonly
                     {blog.coverImageUrl ? (
                       <Image
                         fill
+                        loading="lazy"
                         sizes="(min-width: 768px) 30vw, 92vw"
                         src={blog.coverImageUrl}
                         alt={title}

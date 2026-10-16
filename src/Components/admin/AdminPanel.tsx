@@ -1,14 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Check, Plus, Search, Settings, Tag, Trash2, Users, X } from "lucide-react";
 import {
-  AVAILABLE_BUTTON_ICONS,
-  parseCustomButtons,
-  ProjectButtonIcon,
-  type ProjectCustomButton,
-} from "@/lib/project-buttons";
+  Briefcase,
+  Check,
+  ChevronRight,
+  FileText,
+  Folder,
+  GraduationCap,
+  Inbox,
+  Layers,
+  LogOut,
+  Menu,
+  Plus,
+  Settings,
+  ShieldCheck,
+  Tag,
+  Trash2,
+  Users,
+  Wrench,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { parseCustomButtons, type ProjectCustomButton } from "@/lib/project-buttons";
+import CustomButtonsManager from "@/Components/admin/CustomButtonsManager";
 import ImageCropModal from "@/Components/admin/ImageCropModal";
+import WysiwygField from "@/Components/admin/RichTextEditor";
 
 type AdminPanelProps = {
   email: string;
@@ -44,6 +61,27 @@ const ENTITY_CONFIG = {
 
 type EntityTab = keyof typeof ENTITY_CONFIG;
 type AdminTab = "site" | EntityTab | "inbox" | "security";
+
+const ADMIN_NAV: ReadonlyArray<{ tab: AdminTab; label: string; icon: LucideIcon }> = [
+  { tab: "site", label: "Site Config", icon: Settings },
+  { tab: "educations", label: "Educations", icon: GraduationCap },
+  { tab: "skills", label: "Skills", icon: Wrench },
+  { tab: "team-members", label: "Team Members", icon: Users },
+  { tab: "experiences", label: "Experiences", icon: Briefcase },
+  { tab: "projects", label: "Projects", icon: Folder },
+  { tab: "blogs", label: "Blogs", icon: FileText },
+  { tab: "inbox", label: "Contact Inbox", icon: Inbox },
+  { tab: "security", label: "Security", icon: ShieldCheck },
+];
+
+function isAdminTab(value: string | null): value is AdminTab {
+  return (
+    value === "site" ||
+    value === "inbox" ||
+    value === "security" ||
+    (value !== null && value in ENTITY_CONFIG)
+  );
+}
 
 type SiteConfigForm = {
   siteTitleEn: string;
@@ -195,6 +233,7 @@ type BlogForm = {
   fullDetailsBn: string;
   mediaUrlsText: string;
   coverImageUrl: string;
+  customButtons: ProjectCustomButton[];
   authorNameEn: string;
   authorNameBn: string;
   tagsEn: string;
@@ -378,6 +417,7 @@ const DEFAULT_BLOG: BlogForm = {
   fullDetailsBn: "",
   mediaUrlsText: "",
   coverImageUrl: "",
+  customButtons: [],
   authorNameEn: "",
   authorNameBn: "",
   tagsEn: "",
@@ -497,70 +537,54 @@ function TextareaField({ label, value, rows = 4, onChange }: Readonly<TextareaFi
   );
 }
 
-type WysiwygFieldProps = {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
+function ImagePlaceholderIcon({ className }: Readonly<{ className?: string }>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-6 w-6"}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <circle cx="8.5" cy="8.5" r="1.6" />
+      <path d="M21 15.5 16.5 11 6.5 21" />
+    </svg>
+  );
+}
+
+type ImagePreviewProps = {
+  src: string;
+  alt: string;
+  className?: string;
 };
 
-function WysiwygField({ label, value, onChange }: Readonly<WysiwygFieldProps>) {
-  const editorRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!editorRef.current) {
-      return;
-    }
-
-    if (editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value || "";
-    }
-  }, [value]);
-
-  const applyCommand = (command: string, commandValue?: string) => {
-    document.execCommand(command, false, commandValue);
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
-
-  const handleInput = () => {
-    const html = editorRef.current?.innerHTML ?? "";
-    const normalized = html === "<br>" ? "" : html;
-    onChange(normalized);
-  };
+function ImagePreview({ src, alt, className = "h-14 w-14" }: Readonly<ImagePreviewProps>) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const hasImage = Boolean(src) && failedSrc !== src;
 
   return (
-    <div className="space-y-2 text-sm md:col-span-2">
-      <span className="text-on-surface">{label}</span>
-      <div className="flex flex-wrap gap-2 rounded-xl border border-outline-variant/40 bg-surface-container-low p-2">
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("bold")}>Bold</button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("italic")}>Italic</button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("underline")}>Underline</button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("insertUnorderedList")}>Bullets</button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("insertOrderedList")}>Numbered</button>
-        <button
-          type="button"
-          className="wysiwyg-btn"
-          onClick={() => {
-            const url = window.prompt("Enter link URL");
-            if (url) {
-              applyCommand("createLink", url);
-            }
-          }}
-        >
-          Link
-        </button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("unlink")}>Unlink</button>
-        <button type="button" className="wysiwyg-btn" onClick={() => applyCommand("removeFormat")}>Clear</button>
-      </div>
-      <div
-        ref={editorRef}
-        className="wysiwyg-editor min-h-45 rounded-xl border border-outline-variant/40 bg-surface-container-low px-3 py-2 text-on-surface outline-none focus:border-primary"
-        contentEditable
-        data-placeholder="Write rich details here..."
-        onInput={handleInput}
-        suppressContentEditableWarning
-      />
+    <div
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border ${
+        hasImage
+          ? "border-outline-variant/40 bg-surface-container"
+          : "border-dashed border-outline-variant/50 bg-surface-container-low"
+      } ${className}`}
+    >
+      {hasImage ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={() => setFailedSrc(src)}
+        />
+      ) : (
+        <ImagePlaceholderIcon />
+      )}
     </div>
   );
 }
@@ -577,21 +601,36 @@ function ImageUrlField({ label, value, onChange, onFileUpload, isUploading }: Re
   return (
     <div className="space-y-2">
       <InputField label={label} value={value} onChange={onChange} />
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-outline-variant/40 px-3 py-1.5 text-xs font-semibold text-on-surface">
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            const selected = event.target.files?.[0];
-            if (selected) {
-              onFileUpload(selected);
-            }
-            event.currentTarget.value = "";
-          }}
-        />
-        {isUploading ? "Uploading..." : "Upload Image"}
-      </label>
+      <div className="flex items-center gap-3">
+        <ImagePreview src={value} alt={`${label} preview`} />
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-outline-variant/40 px-3 py-1.5 text-xs font-semibold text-on-surface transition hover:bg-surface-container-high">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const selected = event.target.files?.[0];
+                if (selected) {
+                  onFileUpload(selected);
+                }
+                event.currentTarget.value = "";
+              }}
+            />
+            {isUploading ? "Uploading..." : "Upload Image"}
+          </label>
+          {value ? (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/10"
+            >
+              <Trash2 className="h-3 w-3" />
+              Remove
+            </button>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -958,7 +997,22 @@ function BlogTagsField({
 
 export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps>) {
   const [activeTab, setActiveTab] = useState<AdminTab>("site");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasResolvedInitialTab, setHasResolvedInitialTab] = useState(false);
+  const pendingSelectIdRef = useRef<string | null>(null);
   const imageBbApiKey = process.env.NEXT_PUBLIC_IMGBB_API_KEY ?? "";
+
+  const syncUrl = useCallback((tab: AdminTab, id: string | null) => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", tab);
+    if (id) {
+      params.set("id", id);
+    } else {
+      params.delete("id");
+    }
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }, []);
 
   const [siteConfigForm, setSiteConfigForm] = useState<SiteConfigForm>(DEFAULT_SITE_CONFIG);
 
@@ -1005,9 +1059,6 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   const [securityChallengeId, setSecurityChallengeId] = useState("");
   const [maskedSecurityEmail, setMaskedSecurityEmail] = useState("");
 
-  const [iconPickerButtonIndex, setIconPickerButtonIndex] = useState<number | null>(null);
-  const [iconPickerSearch, setIconPickerSearch] = useState("");
-
   const currentEntityTab = useMemo(
     () => (activeTab in ENTITY_CONFIG ? (activeTab as EntityTab) : null),
     [activeTab],
@@ -1022,6 +1073,44 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     if (currentEntityTab === "blogs") return blogs;
     return [] as EntityItem[];
   }, [blogs, currentEntityTab, educations, experiences, projects, skills, teamMembers]);
+
+  const selectedEntityId = useMemo(() => {
+    if (currentEntityTab === "educations") return selectedEducationId;
+    if (currentEntityTab === "skills") return selectedSkillId;
+    if (currentEntityTab === "team-members") return selectedTeamMemberId;
+    if (currentEntityTab === "experiences") return selectedExperienceId;
+    if (currentEntityTab === "projects") return selectedProjectId;
+    if (currentEntityTab === "blogs") return selectedBlogId;
+    return null;
+  }, [
+    currentEntityTab,
+    selectedBlogId,
+    selectedEducationId,
+    selectedExperienceId,
+    selectedProjectId,
+    selectedSkillId,
+    selectedTeamMemberId,
+  ]);
+
+  const activeTabLabel = useMemo(
+    () => ADMIN_NAV.find((entry) => entry.tab === activeTab)?.label ?? "Dashboard",
+    [activeTab],
+  );
+
+  const ActiveTabIcon = ADMIN_NAV.find((entry) => entry.tab === activeTab)?.icon ?? Layers;
+
+  const handleTabChange = useCallback(
+    (tab: AdminTab) => {
+      setSidebarOpen(false);
+      if (tab === activeTab) return;
+      setActiveTab(tab);
+      if (tab !== "site" && tab !== "inbox" && tab !== "security") {
+        pendingSelectIdRef.current = null;
+      }
+      syncUrl(tab, null);
+    },
+    [activeTab, syncUrl],
+  );
 
   const loadProjectOptions = useCallback(async () => {
     const [membersResponse, skillsResponse] = await Promise.all([
@@ -1085,7 +1174,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   }, [blogs]);
 
   const uploadImageToImageBb = useCallback(
-    async (file: File) => {
+    async (file: File, options?: { preferOriginal?: boolean }) => {
       if (!imageBbApiKey.trim()) {
         throw new Error("ImageBB API key is required.");
       }
@@ -1103,7 +1192,11 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         throw new Error(payload.error?.message || "Image upload failed.");
       }
 
-      const url = payload.data?.display_url || payload.data?.url;
+      // ImageBB's display_url is a server-side optimized/resized rendition.
+      // For the hero banner we want the untouched, full-resolution original.
+      const url = options?.preferOriginal
+        ? payload.data?.url || payload.data?.display_url
+        : payload.data?.display_url || payload.data?.url;
       if (!url) {
         throw new Error("Image URL was not returned by ImageBB.");
       }
@@ -1114,13 +1207,13 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   );
 
   const handleImageFieldUpload = useCallback(
-    async (file: File, fieldName: string, apply: (url: string) => void) => {
+    async (file: File, fieldName: string, apply: (url: string) => void, options?: { preferOriginal?: boolean }) => {
       setError("");
       setMessage("");
       setUploadingField(fieldName);
 
       try {
-        const url = await uploadImageToImageBb(file);
+        const url = await uploadImageToImageBb(file, options);
         apply(url);
         setMessage(`${fieldName} uploaded via ImageBB.`);
       } catch (uploadError) {
@@ -1332,7 +1425,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedEducationId(null);
         setEducationForm(DEFAULT_EDUCATION);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedEducationId(String(first.id ?? ""));
         setEducationForm({
           id: String(first.id ?? ""),
@@ -1363,7 +1456,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedSkillId(null);
         setSkillForm(DEFAULT_SKILL);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedSkillId(String(first.id ?? ""));
         setSkillForm({
           id: String(first.id ?? ""),
@@ -1386,7 +1479,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedTeamMemberId(null);
         setTeamMemberForm(DEFAULT_TEAM_MEMBER);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedTeamMemberId(String(first.id ?? ""));
         setTeamMemberForm({
           id: String(first.id ?? ""),
@@ -1407,7 +1500,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedExperienceId(null);
         setExperienceForm(DEFAULT_EXPERIENCE);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedExperienceId(String(first.id ?? ""));
         setExperienceForm({
           id: String(first.id ?? ""),
@@ -1434,7 +1527,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedProjectId(null);
         setProjectForm(DEFAULT_PROJECT);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedProjectId(String(first.id ?? ""));
         setProjectForm({
           id: String(first.id ?? ""),
@@ -1468,7 +1561,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         setSelectedBlogId(null);
         setBlogForm(DEFAULT_BLOG);
       } else {
-        const first = items[0];
+        const first = (pendingSelectIdRef.current ? items.find((entry) => String(entry.id ?? "") === pendingSelectIdRef.current) : undefined) ?? items[0];
         setSelectedBlogId(String(first.id ?? ""));
         setBlogForm({
           id: String(first.id ?? ""),
@@ -1479,6 +1572,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           fullDetailsBn: String(first.fullDetailsBn ?? ""),
           mediaUrlsText: Array.isArray(first.mediaUrls) ? first.mediaUrls.map((v) => String(v)).join("\n") : "",
           coverImageUrl: String(first.coverImageUrl ?? ""),
+          customButtons: parseCustomButtons(first.customButtons),
           authorNameEn: String(first.authorNameEn ?? ""),
           authorNameBn: String(first.authorNameBn ?? ""),
           tagsEn: String(first.tagsEn ?? ""),
@@ -1493,6 +1587,27 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const urlTab = params.get("tab");
+    const urlId = params.get("id");
+    if (urlId) {
+      pendingSelectIdRef.current = urlId;
+    }
+    if (isAdminTab(urlTab)) {
+      setActiveTab(urlTab);
+    }
+    setHasResolvedInitialTab(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasResolvedInitialTab) return;
+    syncUrl(activeTab, currentEntityTab ? selectedEntityId : null);
+  }, [activeTab, currentEntityTab, hasResolvedInitialTab, selectedEntityId, syncUrl]);
+
+  useEffect(() => {
+    if (!hasResolvedInitialTab) return;
+
     const run = async () => {
       setError("");
       setMessage("");
@@ -1519,7 +1634,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     };
 
     void run();
-  }, [activeTab, loadBlogOptions, loadContactMessages, loadEntity, loadProjectOptions, loadSiteConfig]);
+  }, [activeTab, hasResolvedInitialTab, loadBlogOptions, loadContactMessages, loadEntity, loadProjectOptions, loadSiteConfig]);
 
   useEffect(() => {
     if (activeTab !== "projects") {
@@ -1629,6 +1744,52 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
 
   const handleMoveCustomButton = (fromIndex: number, toIndex: number) => {
     setProjectForm((prev) => {
+      if (toIndex < 0 || toIndex >= prev.customButtons.length) {
+        return prev;
+      }
+      const next = [...prev.customButtons];
+      const [item] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, item);
+      return { ...prev, customButtons: next };
+    });
+  };
+
+  const handleAddBlogButton = () => {
+    setBlogForm((prev) => ({
+      ...prev,
+      customButtons: [
+        ...prev.customButtons,
+        {
+          id: `btn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          labelEn: "",
+          labelBn: "",
+          url: "",
+          color: "#af88ff",
+          icon: "ExternalLink",
+        },
+      ],
+    }));
+  };
+
+  const handleUpdateBlogButton = (index: number, patch: Partial<ProjectCustomButton>) => {
+    setBlogForm((prev) => {
+      const next = [...prev.customButtons];
+      if (next[index]) {
+        next[index] = { ...next[index], ...patch };
+      }
+      return { ...prev, customButtons: next };
+    });
+  };
+
+  const handleRemoveBlogButton = (index: number) => {
+    setBlogForm((prev) => ({
+      ...prev,
+      customButtons: prev.customButtons.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleMoveBlogButton = (fromIndex: number, toIndex: number) => {
+    setBlogForm((prev) => {
       if (toIndex < 0 || toIndex >= prev.customButtons.length) {
         return prev;
       }
@@ -1775,6 +1936,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           fullDetailsBn: blogForm.fullDetailsBn,
           mediaUrls: parseArrayText(blogForm.mediaUrlsText),
           coverImageUrl: blogForm.coverImageUrl,
+          customButtons: JSON.stringify(blogForm.customButtons),
           authorNameEn: blogForm.authorNameEn,
           authorNameBn: blogForm.authorNameBn,
           tagsEn: blogForm.tagsEn,
@@ -1856,6 +2018,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
     if (!currentEntityTab) return;
     const item = currentList.find((candidate) => String(candidate.id) === id);
     if (!item) return;
+
+    pendingSelectIdRef.current = id;
 
     if (currentEntityTab === "educations") {
       setSelectedEducationId(id);
@@ -1969,6 +2133,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
         fullDetailsBn: String(item.fullDetailsBn ?? ""),
         mediaUrlsText: Array.isArray(item.mediaUrls) ? item.mediaUrls.map((v) => String(v)).join("\n") : "",
         coverImageUrl: String(item.coverImageUrl ?? ""),
+        customButtons: parseCustomButtons(item.customButtons),
         authorNameEn: String(item.authorNameEn ?? ""),
         authorNameBn: String(item.authorNameBn ?? ""),
         tagsEn: String(item.tagsEn ?? ""),
@@ -1983,6 +2148,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
 
   function handleNewEntity() {
     if (!currentEntityTab) return;
+
+    pendingSelectIdRef.current = null;
 
     if (currentEntityTab === "educations") {
       setSelectedEducationId(null);
@@ -2075,56 +2242,109 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="rounded-3xl border border-outline-variant/30 bg-surface-container p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-on-surface">Admin CMS Panel</h1>
-            <p className="mt-1 text-on-surface-variant">Signed in as {fullName?.trim() || email}</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isLoggingOut ? "Logging out..." : "Logout"}
-          </button>
-        </div>
-
+    <div className="lg:pl-60">
+      <div className="flex items-center justify-between gap-3 border-b border-outline-variant/30 bg-surface-container px-4 py-3 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open navigation"
+          className="rounded-xl bg-surface-container-low p-2 text-on-surface transition hover:bg-surface-container-high"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <span className="text-sm font-semibold text-on-surface">{activeTabLabel}</span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+          <ActiveTabIcon className="h-5 w-5" />
+        </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        <aside className="rounded-2xl border border-outline-variant/30 bg-surface-container p-3">
-          <div className="space-y-2">
-            {([
-              ["site", "Site Config"],
-              ["educations", "Educations"],
-              ["skills", "Skills"],
-              ["team-members", "Team Members"],
-              ["experiences", "Experiences"],
-              ["projects", "Projects"],
-              ["blogs", "Blogs"],
-              ["inbox", "Contact Inbox"],
-              ["security", "Security"],
-            ] as Array<[AdminTab, string]>).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${
-                  activeTab === tab
-                    ? "bg-primary text-white"
-                    : "bg-surface-container-low text-on-surface hover:bg-surface"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+      {sidebarOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-outline-variant/30 bg-surface-container transition-transform duration-300 lg:w-60 lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+          <div className="flex items-center justify-between gap-3 border-b border-outline-variant/30 px-4 py-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/20 text-primary">
+                <Layers className="h-5 w-5" />
+              </span>
+              <div className="leading-tight">
+                <p className="text-sm font-bold text-on-surface">Admin CMS</p>
+                <p className="text-[11px] text-on-surface-variant">Control Panel</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close navigation"
+              className="rounded-lg p-1.5 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface lg:hidden"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
+            {ADMIN_NAV.map(({ tab, label, icon: Icon }) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => handleTabChange(tab)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
+                    isActive
+                      ? "bg-primary/15 text-primary"
+                      : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="flex-1">{label}</span>
+                  {isActive ? <ChevronRight className="h-4 w-4" /> : null}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div className="border-t border-outline-variant/30 p-3">
+            <div className="mb-2 rounded-xl bg-surface-container-low px-3 py-2">
+              <p className="truncate text-xs font-semibold text-on-surface">{fullName?.trim() || email}</p>
+              <p className="text-[11px] text-on-surface-variant">Signed in</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <LogOut className="h-4 w-4" />
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </button>
           </div>
         </aside>
 
-        <section className="rounded-2xl border border-outline-variant/30 bg-surface-container p-4 md:p-6">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="hidden items-center justify-between gap-4 lg:flex">
+            <div>
+              <h1 className="text-2xl font-bold text-on-surface">{activeTabLabel}</h1>
+              <p className="mt-1 text-sm text-on-surface-variant">
+                Signed in as {fullName?.trim() || email}
+              </p>
+            </div>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+              <ActiveTabIcon className="h-5 w-5" />
+            </span>
+          </div>
+
+          <section className="rounded-3xl border border-outline-variant/30 bg-surface-container p-4 md:p-6">
           {activeTab !== "security" && activeTab !== "inbox" ? (
             <div className="mb-4 rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
               <h2 className="text-sm font-semibold text-on-surface">Upload Settings</h2>
@@ -2227,11 +2447,16 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                   value={siteConfigForm.heroImageUrl}
                   onChange={(value) => setSiteConfigForm((p) => ({ ...p, heroImageUrl: value }))}
                   isUploading={uploadingField === "heroImageUrl"}
-                  onFileUpload={(file) => {
-                    void handleImageFieldUpload(file, "heroImageUrl", (url) => {
+                onFileUpload={(file) => {
+                  void handleImageFieldUpload(
+                    file,
+                    "heroImageUrl",
+                    (url) => {
                       setSiteConfigForm((p) => ({ ...p, heroImageUrl: url }));
-                    });
-                  }}
+                    },
+                    { preferOriginal: true },
+                  );
+                }}
                 />
                 <ImageUrlField
                   label="About Image Primary URL"
@@ -2389,18 +2614,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-xs font-semibold text-on-surface">Institution Logo / Image (1:1 Ratio)</label>
                       <div className="flex flex-wrap items-center gap-3">
-                        {educationForm.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={educationForm.imageUrl}
-                            alt="Education logo preview"
-                            className="h-14 w-14 rounded-xl border border-outline-variant/40 bg-surface-container object-cover shadow-sm"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-outline-variant/50 bg-surface-container-low text-[10px] text-on-surface-variant text-center">
-                            No logo
-                          </div>
-                        )}
+                        <ImagePreview src={educationForm.imageUrl} alt="Education logo preview" />
                         <div className="flex-1 min-w-50 space-y-1.5">
                           <InputField
                             label="Image URL (ImageBB or direct link)"
@@ -2545,18 +2759,7 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-xs font-semibold text-on-surface">Experience Logo / Image (1:1 Ratio)</label>
                       <div className="flex flex-wrap items-center gap-3">
-                        {experienceForm.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={experienceForm.imageUrl}
-                            alt="Experience logo preview"
-                            className="h-14 w-14 rounded-xl border border-outline-variant/40 bg-surface-container object-cover shadow-sm"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-dashed border-outline-variant/50 bg-surface-container-low text-[10px] text-on-surface-variant text-center">
-                            No logo
-                          </div>
-                        )}
+                        <ImagePreview src={experienceForm.imageUrl} alt="Experience logo preview" />
                         <div className="flex-1 min-w-50 space-y-1.5">
                           <InputField
                             label="Image URL (ImageBB or direct link)"
@@ -2719,195 +2922,13 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                     </label>
 
                     {/* Custom Action Buttons Manager */}
-                    <div className="space-y-4 rounded-2xl border border-outline-variant/30 bg-surface-container/60 p-4 sm:p-5 md:col-span-2">
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/20 pb-3">
-                        <div>
-                          <h3 className="text-sm font-semibold text-on-surface">Custom Action Buttons</h3>
-                          <p className="text-xs text-on-surface-variant">
-                            Add custom links (GitHub, live preview, docs, etc.) with custom colors and selectable icons.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleAddCustomButton}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/60 hover:bg-primary/20"
-                        >
-                          <Plus className="h-3.5 w-3.5" aria-hidden />
-                          <span>Add Button</span>
-                        </button>
-                      </div>
-
-                      {projectForm.customButtons.length === 0 ? (
-                        <div className="rounded-xl border border-dashed border-outline-variant/40 py-6 text-center text-xs text-on-surface-variant">
-                          No custom buttons added yet. Click &quot;Add Button&quot; to add custom links.
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {projectForm.customButtons.map((btn, index) => {
-                            const btnColor = btn.color || "#af88ff";
-
-                            return (
-                              <div
-                                key={btn.id || `custom-btn-${index}`}
-                                className="relative rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 shadow-sm space-y-3"
-                              >
-                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/20 pb-2.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="grid h-6 w-6 place-items-center rounded-full bg-surface-container-high text-[11px] font-bold text-on-surface">
-                                      {index + 1}
-                                    </span>
-                                    <span className="text-xs font-semibold text-on-surface">
-                                      {btn.labelEn || btn.labelBn || `Button ${index + 1}`}
-                                    </span>
-
-                                    {/* Live Preview pill */}
-                                    <div
-                                      style={{
-                                        borderColor: `${btnColor}66`,
-                                        color: btnColor,
-                                        backgroundColor: `${btnColor}14`,
-                                      }}
-                                      className="ml-2 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
-                                    >
-                                      <ProjectButtonIcon name={btn.icon} className="h-3 w-3" style={{ color: btnColor }} />
-                                      <span>{btn.labelEn || btn.labelBn || "Preview"}</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={index === 0}
-                                      onClick={() => handleMoveCustomButton(index, index - 1)}
-                                      className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-variant disabled:opacity-30"
-                                      title="Move Up"
-                                    >
-                                      <ArrowUp className="h-3.5 w-3.5" aria-hidden />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={index === projectForm.customButtons.length - 1}
-                                      onClick={() => handleMoveCustomButton(index, index + 1)}
-                                      className="rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-variant disabled:opacity-30"
-                                      title="Move Down"
-                                    >
-                                      <ArrowDown className="h-3.5 w-3.5" aria-hidden />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveCustomButton(index)}
-                                      className="rounded-lg p-1.5 text-error hover:bg-error/10"
-                                      title="Remove Button"
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                  <label className="space-y-1 text-xs">
-                                    <span className="text-on-surface font-medium">Button Text (EN)</span>
-                                    <input
-                                      type="text"
-                                      value={btn.labelEn}
-                                      onChange={(e) => handleUpdateCustomButton(index, { labelEn: e.target.value })}
-                                      placeholder="e.g. GitHub Repo"
-                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
-                                    />
-                                  </label>
-
-                                  <label className="space-y-1 text-xs">
-                                    <span className="text-on-surface font-medium">Button Text (BN)</span>
-                                    <input
-                                      type="text"
-                                      value={btn.labelBn}
-                                      onChange={(e) => handleUpdateCustomButton(index, { labelBn: e.target.value })}
-                                      placeholder="যেমন: গিটহাব রিপো"
-                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
-                                    />
-                                  </label>
-
-                                  <label className="space-y-1 text-xs sm:col-span-2">
-                                    <span className="text-on-surface font-medium">Target Link / URL</span>
-                                    <input
-                                      type="url"
-                                      value={btn.url}
-                                      onChange={(e) => handleUpdateCustomButton(index, { url: e.target.value })}
-                                      placeholder="https://..."
-                                      className="w-full rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-2 text-xs text-on-surface outline-none focus:border-primary"
-                                    />
-                                  </label>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  {/* Color Picker */}
-                                  <div className="space-y-1.5 text-xs">
-                                    <span className="text-on-surface font-medium">Button Color</span>
-                                    <div className="flex items-center gap-2">
-                                      <input
-                                        type="color"
-                                        value={btn.color.startsWith("#") ? btn.color : "#af88ff"}
-                                        onChange={(e) => handleUpdateCustomButton(index, { color: e.target.value })}
-                                        className="h-8 w-10 cursor-pointer rounded-lg border border-outline-variant/40 bg-transparent p-0.5"
-                                        title="Pick color"
-                                      />
-                                      <input
-                                        type="text"
-                                        value={btn.color}
-                                        onChange={(e) => handleUpdateCustomButton(index, { color: e.target.value })}
-                                        placeholder="#af88ff"
-                                        className="w-24 rounded-xl border border-outline-variant/40 bg-surface-container px-2.5 py-1.5 font-mono text-xs text-on-surface outline-none focus:border-primary"
-                                      />
-                                      <div className="flex flex-wrap gap-1">
-                                        {[
-                                          "#af88ff",
-                                          "#3cddc7",
-                                          "#69f6b8",
-                                          "#3b82f6",
-                                          "#f59e0b",
-                                          "#fd6f85",
-                                          "#e7e5e4",
-                                        ].map((preset) => (
-                                          <button
-                                            key={preset}
-                                            type="button"
-                                            onClick={() => handleUpdateCustomButton(index, { color: preset })}
-                                            style={{ backgroundColor: preset }}
-                                            className="h-4.5 w-4.5 rounded-full border border-black/30 shadow-xs transition hover:scale-110"
-                                            title={preset}
-                                          />
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Icon Picker Trigger */}
-                                  <div className="space-y-1.5 text-xs">
-                                    <span className="text-on-surface font-medium">Button Icon</span>
-                                    <div className="flex items-center gap-2">
-                                      <div className="flex items-center gap-2 rounded-xl border border-outline-variant/40 bg-surface-container px-3 py-1.5 text-xs text-on-surface">
-                                        <ProjectButtonIcon name={btn.icon} className="h-4 w-4 text-primary" />
-                                        <span className="font-medium">{btn.icon || "ExternalLink"}</span>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setIconPickerButtonIndex(index);
-                                          setIconPickerSearch("");
-                                        }}
-                                        className="rounded-xl border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20"
-                                      >
-                                        Choose Icon...
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <CustomButtonsManager
+                      buttons={projectForm.customButtons}
+                      onAdd={handleAddCustomButton}
+                      onUpdate={handleUpdateCustomButton}
+                      onRemove={handleRemoveCustomButton}
+                      onMove={handleMoveCustomButton}
+                    />
                   </div>
                 ) : null}
 
@@ -3006,7 +3027,32 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
                         />
                         {uploadingField === "blog.mediaUrls" ? "Uploading..." : "Upload Media Image"}
                       </label>
+                      {parseArrayText(blogForm.mediaUrlsText).length > 0 ? (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {parseArrayText(blogForm.mediaUrlsText).map((url, index) => (
+                            <ImagePreview
+                              key={`${url}-${index}`}
+                              src={url}
+                              alt={`Blog media ${index + 1} preview`}
+                              className="h-16 w-24"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <ImagePreview src="" alt="Blog media placeholder" className="h-16 w-24" />
+                      )}
                     </div>
+
+                    {/* Custom Action Buttons Manager */}
+                    <CustomButtonsManager
+                      buttons={blogForm.customButtons}
+                      onAdd={handleAddBlogButton}
+                      onUpdate={handleUpdateBlogButton}
+                      onRemove={handleRemoveBlogButton}
+                      onMove={handleMoveBlogButton}
+                      title="Custom Blog Buttons"
+                      description="Add custom links (references, source, related reads, etc.) with custom colors and selectable icons."
+                    />
                   </div>
                 ) : null}
 
@@ -3201,91 +3247,8 @@ export default function AdminPanel({ email, fullName }: Readonly<AdminPanelProps
           {isLoading ? <p className="mt-4 text-sm text-on-surface-variant">Loading...</p> : null}
           {message ? <p className="mt-4 text-sm text-green-600">{message}</p> : null}
           {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
-        </section>
-      </div>
-
-      {/* Icon Picker Modal */}
-      {iconPickerButtonIndex !== null ? (
-        <div
-          className="modal-backdrop"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setIconPickerButtonIndex(null);
-            }
-          }}
-        >
-          <div
-            className="modal-panel glass-panel flex w-full max-w-xl max-h-[85vh] flex-col rounded-3xl border border-outline-variant/30 shadow-2xl backdrop-blur-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex shrink-0 items-center justify-between border-b border-outline-variant/20 px-5 py-4">
-              <div>
-                <h3 className="text-base font-semibold text-on-surface">Select Button Icon</h3>
-                <p className="text-xs text-on-surface-variant">Choose an icon representing this action button</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIconPickerButtonIndex(null)}
-                className="inline-flex items-center gap-1 rounded-full border border-outline-variant/50 px-3 py-1 text-xs font-semibold text-on-surface transition hover:bg-surface-variant"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden />
-                <span>Close</span>
-              </button>
-            </div>
-
-            <div className="p-4 border-b border-outline-variant/20">
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
-                <input
-                  type="text"
-                  value={iconPickerSearch}
-                  onChange={(e) => setIconPickerSearch(e.target.value)}
-                  placeholder="Search icons (e.g. github, code, link, play, docs)..."
-                  className="w-full rounded-xl border border-outline-variant/40 bg-surface-container-low py-2 pr-3 pl-9 text-xs text-on-surface outline-none focus:border-primary"
-                />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {AVAILABLE_BUTTON_ICONS.filter(
-                  (item) =>
-                    item.name.toLowerCase().includes(iconPickerSearch.toLowerCase().trim()) ||
-                    item.label.toLowerCase().includes(iconPickerSearch.toLowerCase().trim()),
-                ).map((item) => {
-                  const isCurrent =
-                    projectForm.customButtons[iconPickerButtonIndex]?.icon.toLowerCase() ===
-                    item.name.toLowerCase();
-
-                  return (
-                    <button
-                      key={item.name}
-                      type="button"
-                      onClick={() => {
-                        handleUpdateCustomButton(iconPickerButtonIndex, { icon: item.name });
-                        setIconPickerButtonIndex(null);
-                      }}
-                      className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-left text-xs transition ${
-                        isCurrent
-                          ? "border-primary bg-primary/20 text-primary font-semibold"
-                          : "border-outline-variant/30 bg-surface-container-low text-on-surface hover:border-primary/50 hover:bg-surface-container"
-                      }`}
-                    >
-                      <ProjectButtonIcon name={item.name} className="h-4 w-4 shrink-0 text-primary" />
-                      <div className="min-w-0 flex-1 truncate">
-                        <div className="font-medium truncate">{item.name}</div>
-                        <div className="text-[10px] text-on-surface-variant truncate">{item.label}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
-      ) : null}
 
       <ImageCropModal
         isOpen={isCroppingExperience}

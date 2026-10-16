@@ -32,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${poppins.variable} ${hindSiliguri.variable} antialiased dark`}>
-      <body className="flex min-h-screen flex-col">
+    <html lang="en" className={`${poppins.variable} ${hindSiliguri.variable} antialiased dark`} suppressHydrationWarning>
+      <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         <AppUIProvider>{children}</AppUIProvider>
       </body>
     </html>

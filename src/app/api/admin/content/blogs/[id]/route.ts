@@ -47,6 +47,8 @@ export async function PUT(request: NextRequest, context: RouteParams) {
         fullDetailsBn: asString(body.fullDetailsBn, "fullDetailsBn"),
         mediaUrls: getMediaUrls(body),
         coverImageUrl: asOptionalString(body.coverImageUrl),
+        customButtons:
+          typeof body.customButtons === "string" ? body.customButtons : JSON.stringify(body.customButtons ?? []),
         authorNameEn: asString(body.authorNameEn ?? body.authorEn ?? "", "authorNameEn"),
         authorNameBn: asString(body.authorNameBn ?? body.authorBn ?? "", "authorNameBn"),
         tagsEn: asString(body.tagsEn ?? "", "tagsEn"),

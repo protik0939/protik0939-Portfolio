@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { BookOpenText, BriefcaseBusiness, Code2, Languages } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
+import { calculateMonthsSince, formatExperienceDuration, toBengaliNumber } from "@/lib/experience";
 import Link from "next/link";
 import { SlSocialGithub, SlSocialLinkedin } from "react-icons/sl";
 import { FaXTwitter } from "react-icons/fa6";
@@ -24,8 +25,15 @@ type HeroSiteConfig = {
   cvUrl: string | null;
 };
 
+type HeroOrbitSkill = {
+  nameEn: string;
+  nameBn: string;
+  logoUrl?: string | null;
+};
+
 type HeroSectionProps = {
   siteConfig?: HeroSiteConfig | null;
+  skills?: HeroOrbitSkill[];
   stats?: {
     projectsCompleted: number;
     skillsCount: number;
@@ -33,63 +41,6 @@ type HeroSectionProps = {
     blogsCount: number;
   };
 };
-
-function calculateExperienceMonths(now: Date = new Date()): number {
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed: 0 = Jan, 6 = Jul, 11 = Dec
-  const currentDate = now.getDate();
-
-  // Start date: July 2026 (year 2026, month index 6)
-  const startYear = 2026;
-  const startMonth = 6;
-
-  // Completed full months from July 2026 to the start of the current month
-  const fullMonths = (currentYear - startYear) * 12 + (currentMonth - startMonth);
-
-  // Total days in the current month
-  const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-  // If currently it's less than half of the current month, exclude current month (+0).
-  // If it is half or more of the current month, include the current month (+1).
-  const isHalfOrMore = currentDate >= daysInCurrentMonth / 2;
-  const additionalMonth = isHalfOrMore ? 1 : 0;
-
-  return Math.max(0, fullMonths + additionalMonth);
-}
-
-function toBengaliNumber(num: number): string {
-  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
-  return String(num).replace(/\d/g, (digit) => bnDigits[Number(digit)] ?? digit);
-}
-
-function formatExperienceDuration(totalMonths: number, isBn: boolean): string {
-  const years = Math.floor(totalMonths / 12);
-  const months = totalMonths % 12;
-
-  if (isBn) {
-    if (years === 0) {
-      return `${toBengaliNumber(months)} মাস +`;
-    }
-    if (months === 0) {
-      return `${toBengaliNumber(years)} বছর +`;
-    }
-    return `${toBengaliNumber(years)} বছর ${toBengaliNumber(months)} মাস +`;
-  }
-
-  // English
-  if (years === 0) {
-    const monthText = months === 1 ? "1 Month" : `${months} Months`;
-    return `${monthText} +`;
-  }
-
-  const yearText = years === 1 ? "1 Year" : `${years} Years`;
-  if (months === 0) {
-    return `${yearText} +`;
-  }
-
-  const monthText = months === 1 ? "1 Month" : `${months} Months`;
-  return `${yearText} ${monthText} +`;
-}
 
 function normalizeCvSource(raw: string | null | undefined): string | null {
   const value = raw?.trim() ?? "";
@@ -121,11 +72,22 @@ function normalizeCvSource(raw: string | null | undefined): string | null {
   return value;
 }
 
-export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionProps>) {
+export default function HeroSection({ siteConfig, skills, stats }: Readonly<HeroSectionProps>) {
   const { language, t } = useAppUI();
   const isBn = language === "bn";
 
-  const experienceMonths = calculateExperienceMonths();
+  const formatNumber = (value: number) => (isBn ? toBengaliNumber(value) : String(value));
+
+  const [showScrollCue, setShowScrollCue] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollCue(window.scrollY < 80);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const experienceMonths = calculateMonthsSince(2026, 6);
   const experienceDuration = formatExperienceDuration(experienceMonths, isBn);
   const experienceSuffix = isBn ? "প্রফেশনাল অভিজ্ঞতা" : "of professional experience";
 
@@ -223,17 +185,33 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
     },
   ];
   const hiringSnapshot = isBn
-    ? `রিয়েল ডেটা অনুযায়ী ${heroStats[0].value}+ প্রজেক্ট, ${heroStats[2].value}+ ভাষা, ${heroStats[1].value}+ দক্ষতা নিয়ে কাজ করি।`
-    : `Backed by live data: ${heroStats[0].value}+ projects, ${heroStats[2].value}+ languages, and ${heroStats[1].value}+ production-ready skills.`;
+    ? `${formatNumber(heroStats[0].value)}+ প্রজেক্ট, ${formatNumber(heroStats[2].value)}+ ভাষা, ${formatNumber(heroStats[1].value)}+ দক্ষতা নিয়ে কাজ করি।`
+    : `${heroStats[0].value}+ projects, ${heroStats[2].value}+ languages, and ${heroStats[1].value}+ production-ready skills.`;
+
+  const orbitLogos = Array.from(
+    new Set(
+      (skills ?? [])
+        .map((skill) => skill.logoUrl?.trim() ?? "")
+        .filter((url) => url.length > 0),
+    ),
+  );
+
+  const orbitRings = [
+    { radius: 260, duration: 48, reverse: false, chip: 38, offset: 0 },
+    { radius: 400, duration: 74, reverse: true, chip: 46, offset: 30 },
+    { radius: 540, duration: 100, reverse: false, chip: 54, offset: 15 },
+  ];
+  const orbitPerRing = Math.max(1, Math.ceil(orbitLogos.length / orbitRings.length));
+
 
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden px-8 md:px-20 sm:pt-0 pt-6" id="home">
+    <section className="relative flex min-h-[calc(100svh-5rem)] items-center min-[1260px]:items-stretch overflow-hidden px-8 min-[1260px]:px-20 pt-6 min-[1260px]:pt-8" id="home">
       <div className="absolute top-1/4 -left-20 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute right-0 bottom-1/4 -mr-20 h-96 w-96 rounded-full bg-secondary/10 blur-[120px]" />
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 md:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-12 min-[1260px]:grid-cols-2">
         <AnimatedReveal className="z-10" delay={0.05}>
-          <div data-reveal>
+          <div data-reveal className="mx-auto flex w-full max-w-2xl flex-col justify-center min-[1260px]:h-full min-[1260px]:max-w-none">
             {/* Dynamic Highlighted Professional Experience Badge */}
             <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-secondary/40 bg-secondary/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-on-surface shadow-[0_0_20px_rgba(60,221,199,0.18)] backdrop-blur-md transition-all hover:border-secondary/70 hover:shadow-[0_0_25px_rgba(60,221,199,0.3)]">
               <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -247,12 +225,12 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
             </div>
 
             <span className="mb-4 block text-sm tracking-widest text-secondary uppercase">{heroBadge}</span>
-            <h1 className="mb-6 font-headline text-6xl leading-[0.9] font-extrabold tracking-tighter md:text-8xl">
+            <h1 className="mb-5 font-headline text-6xl leading-[0.9] font-extrabold tracking-tighter lg:text-7xl min-[1260px]:text-8xl">
               {heroNameTop} <br />
               <span className="font-light text-on-surface-variant italic">{heroNameBottom}</span>
             </h1>
-            <p className="mb-6 max-w-lg text-lg leading-relaxed text-on-surface-variant">{heroDescription}</p>
-            <p className="mb-4 max-w-xl text-sm leading-relaxed text-on-surface-variant">{hiringSnapshot}</p>
+            <p className="mb-4 text-lg leading-relaxed text-on-surface-variant min-[1260px]:max-w-lg">{heroDescription}</p>
+            <p className="mb-3 text-sm leading-relaxed text-on-surface-variant min-[1260px]:max-w-xl">{hiringSnapshot}</p>
 
             <div className="flex flex-wrap items-center gap-4">
               <Link
@@ -281,7 +259,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               )}
             </div>
 
-            <div className="mt-6 flex gap-6">
+            <div className="mt-5 flex gap-6">
               <Link
                 className="flex h-12 w-12 items-center justify-center rounded-full border border-white/5 bg-surface-container-low text-on-surface-variant transition-all hover:border-primary/50 hover:text-primary"
                 href="https://github.com/protik0939"
@@ -311,7 +289,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
               </Link>
             </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-3 lg:max-w-xl">
+            <div className="mt-7 grid grid-cols-2 gap-3 min-[1260px]:max-w-xl">
               {heroStats.map((item) => {
                 const Icon = item.icon;
 
@@ -323,7 +301,7 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
                     <div className="mb-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-container-high text-primary">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <p className="text-xl font-black tracking-tight text-on-surface">{item.value}+</p>
+                    <p className="text-xl font-black tracking-tight text-on-surface">{formatNumber(item.value)}+</p>
                     <p className="text-[10px] tracking-[0.14em] text-on-surface-variant uppercase">{item.label}</p>
                   </div>
                 );
@@ -332,32 +310,93 @@ export default function HeroSection({ siteConfig, stats }: Readonly<HeroSectionP
           </div>
         </AnimatedReveal>
 
-        <AnimatedReveal delay={0.2}>
-          <div className="group relative" data-reveal>
-            <div className="absolute inset-0 rounded-3xl bg-primary/20 blur-2xl" />
+        <AnimatedReveal delay={0.2} className="h-full">
+          <div className="group relative mx-auto mb-10 h-full w-full max-w-md min-[1260px]:mb-0 min-[1260px]:max-w-none" data-reveal>
             <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/25 blur-[90px] animate-[pulse_3.6s_ease-in-out_infinite]" />
             <div className="absolute top-1/2 left-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/20 blur-[70px] animate-[pulse_4.8s_ease-in-out_infinite]" />
-            <div className="glass-panel relative aspect-4/5 overflow-hidden rounded-3xl p-4 mb-10">
+            <div className="hero-image-veil relative z-10 h-full aspect-4/5 min-[1260px]:aspect-auto">
               <Image
                 fill
                 priority
-                sizes="(min-width: 1024px) 36vw, 88vw"
-                className="h-full w-full rounded-2xl object-cover"
+                fetchPriority="high"
+                quality={100}
+                sizes="(min-width: 1260px) 50vw, (min-width: 1024px) 46vw, 90vw"
+                className="pointer-events-none h-full w-full object-cover"
                 src={heroImageUrl}
                 alt="Developer portrait"
               />
+            </div>
 
-              {/* Floating Dynamic Experience Highlight Tag */}
-              <div className="glass-panel absolute right-4 bottom-4 z-10 flex items-center gap-2.5 rounded-xl border border-secondary/40 bg-surface/90 px-3.5 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-                <BriefcaseBusiness className="h-4 w-4 shrink-0 text-secondary" />
-                <p className="text-xs font-bold text-on-surface">
-                  <span className="text-secondary font-extrabold">{experienceDuration}</span>{" "}
-                  <span>{isBn ? "অভিজ্ঞতা" : "Exp."}</span>
-                </p>
+            {/* Cyclone of skill logos orbiting the portrait */}
+            {orbitLogos.length > 0 ? (
+              <div aria-hidden className="hero-tech-orbit">
+                {orbitRings.map((ring, ringIndex) => {
+                  const ringLogos = orbitLogos.slice(ringIndex * orbitPerRing, (ringIndex + 1) * orbitPerRing);
+                  if (ringLogos.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <div
+                      key={ringIndex}
+                      className={`hero-tech-orbit__ring${ring.reverse ? " hero-tech-orbit__ring--reverse" : ""}`}
+                      style={
+                        {
+                          "--orbit-duration": `${ring.duration}s`,
+                          "--orbit-size": `${ring.chip}px`,
+                        } as CSSProperties
+                      }
+                    >
+                      {ringLogos.map((logo, index) => (
+                        <div
+                          key={`${ringIndex}-${index}`}
+                          className="hero-tech-orbit__item"
+                          style={
+                            {
+                              "--orbit-angle": `${ring.offset + (index / ringLogos.length) * 360}deg`,
+                              "--orbit-radius": `${ring.radius}px`,
+                            } as CSSProperties
+                          }
+                        >
+                          <span className="hero-tech-orbit__icon">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={logo} alt="" loading="lazy" decoding="async" fetchPriority="low" />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
+            ) : null}
+
+            {/* Floating Dynamic Experience Highlight Tag */}
+            <div className="glass-panel absolute right-4 bottom-8 z-10 flex items-center gap-2.5 rounded-xl border border-secondary/40 bg-surface/90 px-3.5 py-2 shadow-[0_10px_25px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+              <BriefcaseBusiness className="h-4 w-4 shrink-0 text-secondary" />
+              <p className="text-xs font-bold text-on-surface">
+                <span className="text-secondary font-extrabold">{experienceDuration}</span>{" "}
+                <span>{isBn ? "অভিজ্ঞতা" : "Exp."}</span>
+              </p>
             </div>
           </div>
         </AnimatedReveal>
+      </div>
+
+      {/* Scroll indicator — visible while at the top of the page */}
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 transition-all duration-500 ${
+          showScrollCue ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+        }`}
+      >
+        <div className="flex flex-col items-center gap-2.5">
+          <span className="text-[10px] font-semibold tracking-[0.28em] text-on-surface-variant/80 uppercase">
+            {isBn ? "স্ক্রল করুন" : "Scroll"}
+          </span>
+          <span className="flex h-9 w-5 items-start justify-center rounded-full border border-outline-variant/50 bg-surface-container-low/40 p-1 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-secondary animate-[scroll-cue-dot_1.8s_ease-in-out_infinite]" />
+          </span>
+        </div>
       </div>
     </section>
   );

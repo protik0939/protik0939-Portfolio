@@ -7,6 +7,7 @@ import BlogMediaSlider from "@/Components/BlogMediaSlider";
 import BlogShareButton from "@/Components/BlogShareButton";
 import SubpageTopBar from "@/Components/SubpageTopBar";
 import { getPublishedBlogBySlug, pickLocalized } from "@/lib/public-content";
+import { parseCustomButtons, ProjectButtonIcon } from "@/lib/project-buttons";
 import { resolveRequestLanguage } from "@/lib/request-language";
 import { forceAnchorTargets, isProbablyHtml, stripHtml } from "@/lib/text-format";
 
@@ -119,6 +120,7 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
   const fullDetailsHtml = forceAnchorTargets(fullDetails);
   const fullDetailsText = stripHtml(fullDetails);
   const author = pickLocalized(language, blog.authorNameEn, blog.authorNameBn);
+  const customButtons = parseCustomButtons(blog.customButtons);
   const tags = pickLocalized(language, blog.tagsEn, blog.tagsBn)
     .split(",")
     .map((tag) => tag.trim())
@@ -179,6 +181,33 @@ export default async function BlogDetailsPage({ params, searchParams }: BlogDeta
                   {renderDetailsWithAnchors(fullDetails)}
                 </div>
               )}
+
+              {customButtons.length > 0 ? (
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  {customButtons.map((button) => {
+                    const label = pickLocalized(language, button.labelEn, button.labelBn || button.labelEn);
+                    const btnColor = button.color || "#af88ff";
+
+                    return (
+                      <a
+                        key={button.id}
+                        href={button.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          borderColor: `${btnColor}66`,
+                          color: btnColor,
+                          backgroundColor: `${btnColor}14`,
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-xs font-semibold tracking-widest uppercase transition-all duration-200 hover:scale-[1.02] hover:brightness-110 hover:shadow-lg"
+                      >
+                        <ProjectButtonIcon name={button.icon} className="h-4 w-4" style={{ color: btnColor }} />
+                        <span>{label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </article>
         </div>

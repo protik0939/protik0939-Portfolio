@@ -92,6 +92,7 @@ export default function ProjectsSection({ projects = [], siteConfig = null }: Re
                   {project.coverImageUrl ? (
                     <Image
                       fill
+                      loading="lazy"
                       sizes="(min-width: 768px) 44vw, 92vw"
                       className="object-cover transition-transform duration-700 group-hover:scale-105 group-hover:desaturate-[0.5]"
                       src={project.coverImageUrl}

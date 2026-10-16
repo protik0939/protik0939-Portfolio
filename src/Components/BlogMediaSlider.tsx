@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Maximize2, Play, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 type SliderMediaItem = {
   key: string;
@@ -147,6 +148,29 @@ export default function BlogMediaSlider({
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [playingYoutubeIndex, setPlayingYoutubeIndex] = useState<number | null>(null);
+  const [slideDirection, setSlideDirection] = useState<"next" | "prev">("next");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreen]);
+
+  const canSlide = items.length > 1;
 
   if (items.length === 0) {
     return (
@@ -157,11 +181,18 @@ export default function BlogMediaSlider({
   }
 
   const active = items[activeIndex] ?? items[0];
-  const canSlide = items.length > 1;
   const isCard = variant === "card";
+  const canFullscreen = active.type === "image";
+
+  const goToIndex = (nextIndex: number) => {
+    setPlayingYoutubeIndex(null);
+    setSlideDirection(nextIndex >= activeIndex ? "next" : "prev");
+    setActiveIndex((nextIndex + items.length) % items.length);
+  };
 
   const shiftSlide = (direction: "prev" | "next") => {
     setPlayingYoutubeIndex(null);
+    setSlideDirection(direction);
     const directionOffset = direction === "prev" ? -1 : 1;
     setActiveIndex((previous) => (previous + directionOffset + items.length) % items.length);
   };
@@ -169,27 +200,32 @@ export default function BlogMediaSlider({
   return (
     <div className="space-y-2">
       <div className={`group/slider relative overflow-hidden rounded-2xl bg-surface-container ${isCard ? "h-48" : "h-64 sm:h-80 lg:h-104"}`}>
-        {active.type === "youtube" && playingYoutubeIndex === activeIndex ? (
-          <iframe
-            src={`${active.src}&autoplay=1`}
-            title={`${title} video ${activeIndex + 1}`}
-            className="h-full w-full"
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
-        ) : (
-          <ActiveMediaPreview
-            active={active}
-            activeIndex={activeIndex}
-            title={title}
-            isCard={isCard}
-            onPlayYoutube={() => {
-              setPlayingYoutubeIndex(activeIndex);
-            }}
-          />
-        )}
+        <div
+          key={activeIndex}
+          className={`h-full w-full ${slideDirection === "next" ? "media-slide-next" : "media-slide-prev"}`}
+        >
+          {active.type === "youtube" && playingYoutubeIndex === activeIndex ? (
+            <iframe
+              src={`${active.src}&autoplay=1`}
+              title={`${title} video ${activeIndex + 1}`}
+              className="h-full w-full"
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          ) : (
+            <ActiveMediaPreview
+              active={active}
+              activeIndex={activeIndex}
+              title={title}
+              isCard={isCard}
+              onPlayYoutube={() => {
+                setPlayingYoutubeIndex(activeIndex);
+              }}
+            />
+          )}
+        </div>
 
         {canSlide ? (
           <>
@@ -211,6 +247,17 @@ export default function BlogMediaSlider({
             </button>
           </>
         ) : null}
+
+        {canFullscreen ? (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen(true)}
+            className="absolute top-2 right-2 inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-black/35 px-2.5 py-2 text-[11px] font-semibold text-white backdrop-blur transition hover:bg-black/55 opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 focus-visible:opacity-100"
+            aria-label="View image full screen"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
       </div>
 
       {canSlide ? (
@@ -219,10 +266,7 @@ export default function BlogMediaSlider({
             <button
               type="button"
               key={item.key}
-              onClick={() => {
-                setPlayingYoutubeIndex(null);
-                setActiveIndex(index);
-              }}
+              onClick={() => goToIndex(index)}
               className={`relative h-14 w-20 shrink-0 overflow-hidden rounded-lg border ${index === activeIndex ? "border-primary" : "border-outline-variant/40"}`}
               aria-label={`Go to media ${index + 1}`}
             >
@@ -242,6 +286,39 @@ export default function BlogMediaSlider({
           ))}
         </div>
       ) : null}
+
+      {isFullscreen && canFullscreen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="fixed inset-0 z-[9999] flex h-screen w-screen items-center justify-center bg-black/95 p-4 backdrop-blur"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${title} full screen image`}
+              onClick={() => setIsFullscreen(false)}
+            >
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsFullscreen(false);
+                }}
+                className="absolute top-4 right-4 z-10 inline-flex items-center justify-center rounded-full border border-white/30 bg-black/50 p-2.5 text-white transition hover:bg-black/70"
+                aria-label="Close full screen"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={active.src}
+                alt={`${title} media ${activeIndex + 1}`}
+                onClick={(event) => event.stopPropagation()}
+                className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+              />
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

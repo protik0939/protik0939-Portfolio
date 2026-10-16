@@ -281,6 +281,7 @@ model Blog {
 	tagsBn            String   @default("") @map("tags_bn")
 	mediaUrls         String[] @default([]) @map("media_urls")
 	coverImageUrl     String?  @map("cover_image_url")
+	customButtons     String?  @default("[]") @map("custom_buttons")
 	sortOrder         Int      @default(0) @map("sort_order")
 	isPublished       Boolean  @default(true) @map("is_published")
 	admin             Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)

@@ -150,7 +150,7 @@ export default async function Home() {
       <TopAppBar siteConfig={siteConfig} />
 
       <main className="relative z-10 pt-20">
-        <HeroSection siteConfig={siteConfig} stats={heroStats} />
+        <HeroSection siteConfig={siteConfig} stats={heroStats} skills={skills} />
         <AboutSection siteConfig={siteConfig} projectCount={homeContent.stats.projectCount} />
         <SkillsSection skills={skills} />
         <ProblemSolvingSection siteConfig={siteConfig} />

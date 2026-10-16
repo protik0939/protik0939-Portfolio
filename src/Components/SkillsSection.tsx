@@ -95,6 +95,7 @@ export default function SkillsSection({ skills = [] }: Readonly<SkillsSectionPro
                           <Image
                             width={20}
                             height={20}
+                            loading="lazy"
                             className="h-5 w-5 rounded object-cover"
                             src={skill.logoUrl}
                             alt={language === "bn" ? skill.nameBn : skill.nameEn}
