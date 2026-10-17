@@ -7,6 +7,7 @@ import SubpageTopBar from "@/Components/SubpageTopBar";
 import { getPublishedBlogs, getSiteConfig, pickLocalized } from "@/lib/public-content";
 import { resolveRequestLanguage } from "@/lib/request-language";
 import { stripHtml } from "@/lib/text-format";
+import { pickSeoDescription } from "@/lib/site-url";
 
 type BlogsPageProps = {
   searchParams: Promise<{ lang?: string; q?: string; tags?: string; start?: string; end?: string }>;
@@ -21,19 +22,20 @@ export async function generateMetadata({ searchParams }: BlogsPageProps): Promis
   const firstImage = blogs.find((blog) => blog.coverImageUrl)?.coverImageUrl ?? undefined;
 
   return {
+    alternates: { canonical: "/blogs" },
     title: siteConfig
       ? `${pickLocalized(language, siteConfig.blogsSectionTitleEn, siteConfig.blogsSectionTitleBn)} | ${pickLocalized(language, siteConfig.siteTitleEn, siteConfig.siteTitleBn)}`
       : "Blogs",
-    description: siteConfig
-      ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn)
-      : "Blog list",
+    description: pickSeoDescription(
+      siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
+    ),
     openGraph: {
       title: siteConfig
         ? `${pickLocalized(language, siteConfig.blogsSectionTitleEn, siteConfig.blogsSectionTitleBn)} | ${pickLocalized(language, siteConfig.siteTitleEn, siteConfig.siteTitleBn)}`
         : "Blogs",
-      description: siteConfig
-        ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn)
-        : "Blog list",
+      description: pickSeoDescription(
+        siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
+      ),
       type: "website",
       images: firstImage ? [{ url: firstImage }] : [],
     },

@@ -6,6 +6,7 @@ import ProjectFilters from "@/Components/ProjectFilters";
 import SubpageTopBar from "@/Components/SubpageTopBar";
 import { getPublishedProjects, getPublishedSkills, getSiteConfig, pickLocalized } from "@/lib/public-content";
 import { resolveRequestLanguage } from "@/lib/request-language";
+import { pickSeoDescription } from "@/lib/site-url";
 
 type ProjectsPageProps = {
   searchParams: Promise<{ lang?: string; techs?: string; tech?: string; type?: string; category?: string; level?: string; q?: string }>;
@@ -20,19 +21,20 @@ export async function generateMetadata({ searchParams }: ProjectsPageProps): Pro
   const firstImage = projects.find((project) => project.coverImageUrl)?.coverImageUrl ?? undefined;
 
   return {
+    alternates: { canonical: "/projects" },
     title: siteConfig
       ? `${pickLocalized(language, siteConfig.projectsSectionTitleEn, siteConfig.projectsSectionTitleBn)} | ${pickLocalized(language, siteConfig.siteTitleEn, siteConfig.siteTitleBn)}`
       : "Projects",
-    description: siteConfig
-      ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn)
-      : "Project list",
+    description: pickSeoDescription(
+      siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
+    ),
     openGraph: {
       title: siteConfig
         ? `${pickLocalized(language, siteConfig.projectsSectionTitleEn, siteConfig.projectsSectionTitleBn)} | ${pickLocalized(language, siteConfig.siteTitleEn, siteConfig.siteTitleBn)}`
         : "Projects",
-      description: siteConfig
-        ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn)
-        : "Project list",
+      description: pickSeoDescription(
+        siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
+      ),
       type: "website",
       images: firstImage ? [{ url: firstImage }] : [],
     },

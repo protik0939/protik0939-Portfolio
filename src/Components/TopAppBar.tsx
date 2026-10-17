@@ -1,8 +1,9 @@
 "use client";
 
-import { ChevronDown, Download, Languages, Menu, MoonStar, Sun, X } from "lucide-react";
+import { ChevronDown, Download, Languages, MoonStar, Sun } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppUI } from "@/Components/AppUIProvider";
+import { downloadResume, normalizeCvSource, RESUME_FILE_NAME } from "@/lib/cv";
 
 type TopBarSiteConfig = {
   siteTitleEn: string;
@@ -32,40 +33,8 @@ type TopNavItem = {
   sectionId: string;
 };
 
-function normalizeCvSource(raw: string | null | undefined): string | null {
-  const value = raw?.trim() ?? "";
-  if (!value || value === "#contact") {
-    return null;
-  }
-
-  if (value.startsWith("data:")) {
-    const commaIndex = value.indexOf(",");
-    if (commaIndex < 0) {
-      return value;
-    }
-
-    const prefix = value.slice(0, commaIndex + 1);
-    const payload = value.slice(commaIndex + 1).replace(/\s+/g, "");
-    return `${prefix}${payload}`;
-  }
-
-  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
-    return value;
-  }
-
-  const compact = value.replace(/\s+/g, "");
-  if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 120) {
-    const mimeType = compact.startsWith("JVBERi0") ? "application/pdf" : "application/octet-stream";
-    return `data:${mimeType};base64,${compact}`;
-  }
-
-  return value;
-}
-
 export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const { language, theme, t, toggleLanguage, toggleTheme } = useAppUI();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCvModalOpen, setIsCvModalOpen] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState("home");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownCloseTimer = useRef<number | null>(null);
@@ -85,10 +54,6 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const contactLabel = siteConfig ? (isBn ? siteConfig.navContactBn : siteConfig.navContactEn) : t("nav.contact", "Contact");
   const cvLabel = siteConfig ? (isBn ? siteConfig.navCvBn : siteConfig.navCvEn) : t("nav.downloadResume", "Download Resume");
   const cvHref = useMemo(() => normalizeCvSource(siteConfig?.cvUrl), [siteConfig?.cvUrl]);
-  const hasCvDocument = Boolean(cvHref);
-  const cvFileName = "Md. Sadat Alam Protik - Full Stack Developer Resume";
-  const isPdfDocument = (cvHref ?? "").startsWith("data:application/pdf") || /\.pdf(\?|$)/i.test(cvHref ?? "");
-  const isDataCv = (cvHref ?? "").startsWith("data:");
 
   const clearDropdownTimer = useCallback(() => {
     if (!dropdownCloseTimer.current) {
@@ -107,73 +72,39 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
 
   const handleCvDownload = useCallback(() => {
     if (!cvHref) {
+      globalThis.location.hash = "#contact";
       return;
     }
 
-    if (!isDataCv) {
-      globalThis.open(cvHref, "_blank", "noreferrer");
-      return;
-    }
+    downloadResume(cvHref, RESUME_FILE_NAME);
+  }, [cvHref]);
 
-    const commaIndex = cvHref.indexOf(",");
-    if (commaIndex < 0) {
-      return;
-    }
+  const navPrimaryItems = useMemo<TopNavItem[]>(
+    () => [
+      { href: "#home", label: homeLabel, sectionId: "home" },
+      { href: "#about", label: aboutLabel, sectionId: "about" },
+      { href: "#blogs", label: blogsLabel, sectionId: "blogs" },
+      { href: "#contact", label: contactLabel, sectionId: "contact" },
+    ],
+    [aboutLabel, blogsLabel, contactLabel, homeLabel],
+  );
 
-    const metadata = cvHref.slice(0, commaIndex);
-    const base64 = cvHref.slice(commaIndex + 1);
-    const mimeMatch = /data:([^;]+);base64/i.exec(metadata);
-    const mimeType = mimeMatch?.[1] ?? "application/octet-stream";
+  const expertiseItems = useMemo<TopNavItem[]>(
+    () => [
+      { href: "#skills", label: skillsLabel, sectionId: "skills" },
+      { href: "#problem-solving", label: problemSolvingLabel, sectionId: "problem-solving" },
+      { href: "#github-contribution", label: githubLabel, sectionId: "github-contribution" },
+    ],
+    [githubLabel, problemSolvingLabel, skillsLabel],
+  );
 
-    try {
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i += 1) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
-      const anchor = document.createElement("a");
-      anchor.href = blobUrl;
-      anchor.download = `${cvFileName}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      globalThis.open(cvHref, "_blank", "noreferrer");
-    }
-  }, [cvFileName, cvHref, isDataCv]);
-
-  useEffect(() => {
-    if (!isCvModalOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isCvModalOpen]);
-
-  const navPrimaryItems = useMemo<TopNavItem[]>(() => [
-    { href: "#home", label: homeLabel, sectionId: "home" },
-    { href: "#about", label: aboutLabel, sectionId: "about" },
-    { href: "#blogs", label: blogsLabel, sectionId: "blogs" },
-    { href: "#contact", label: contactLabel, sectionId: "contact" },
-  ], [aboutLabel, blogsLabel, contactLabel, homeLabel]);
-
-  const expertiseItems = useMemo<TopNavItem[]>(() => [
-    { href: "#skills", label: skillsLabel, sectionId: "skills" },
-    { href: "#problem-solving", label: problemSolvingLabel, sectionId: "problem-solving" },
-    { href: "#github-contribution", label: githubLabel, sectionId: "github-contribution" },
-  ], [githubLabel, problemSolvingLabel, skillsLabel]);
-
-  const careerItems = useMemo<TopNavItem[]>(() => [
-    { href: "#education-experience", label: educationExperienceLabel, sectionId: "education-experience" },
-    { href: "#projects", label: projectsLabel, sectionId: "projects" },
-  ], [educationExperienceLabel, projectsLabel]);
+  const careerItems = useMemo<TopNavItem[]>(
+    () => [
+      { href: "#education-experience", label: educationExperienceLabel, sectionId: "education-experience" },
+      { href: "#projects", label: projectsLabel, sectionId: "projects" },
+    ],
+    [educationExperienceLabel, projectsLabel],
+  );
 
   const navItems = useMemo<TopNavItem[]>(
     () => [
@@ -221,17 +152,6 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   }, [navItems]);
 
   useEffect(() => () => clearDropdownTimer(), [clearDropdownTimer]);
-
-  const openCvModal = () => {
-    if (!hasCvDocument) {
-      globalThis.location.hash = "#contact";
-      setIsMobileMenuOpen(false);
-      return;
-    }
-
-    setIsCvModalOpen(true);
-    setIsMobileMenuOpen(false);
-  };
 
   return (
     <>
@@ -373,137 +293,16 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
 
             <button
               type="button"
-              onClick={openCvModal}
-              className="hidden rounded-full bg-primary-container px-5 py-2.5 text-sm font-medium text-on-primary-container transition-all duration-200 hover:brightness-110 active:scale-95 sm:inline-flex"
+              onClick={handleCvDownload}
+              className="hidden items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-medium text-on-primary-container transition-all duration-200 hover:brightness-110 active:scale-95 sm:inline-flex"
             >
+              <Download className="h-4 w-4" />
               {cvLabel}
             </button>
-
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen((current) => !current)}
-              aria-label={t("nav.menu", "Menu")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/50 bg-surface-container-low text-on-surface transition-colors hover:border-primary/50 lg:hidden"
-            >
-              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
           </div>
         </div>
 
-        {isMobileMenuOpen ? (
-          <div className="absolute top-full right-4 left-4 mt-3 rounded-2xl border border-outline-variant/30 bg-surface-container p-3 shadow-2xl backdrop-blur-xl lg:hidden">
-            <div className="space-y-2">
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => {
-                    setActiveSectionId(item.sectionId);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`block rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                    activeSectionId === item.sectionId
-                      ? "bg-primary/20 text-primary"
-                      : "bg-surface-container-low text-on-surface-variant hover:bg-surface hover:text-on-surface"
-                  }`}
-                >
-                  {item.label}
-                </a>
-              ))}
-              <button
-                type="button"
-                onClick={openCvModal}
-                className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-primary-container px-4 py-2.5 text-sm font-semibold text-on-primary-container"
-              >
-                {cvLabel}
-              </button>
-            </div>
-          </div>
-        ) : null}
       </header>
-
-      {isCvModalOpen ? (
-        <div className="fixed inset-0 z-[70] bg-black/75 p-4 backdrop-blur-sm sm:p-8" role="dialog" aria-modal="true" aria-label={t("nav.cvPreview", "CV Preview")}>
-          <div className="glass-panel mx-auto flex h-full max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-outline-variant/30">
-            <div className="flex items-center justify-between border-b border-outline-variant/30 px-4 py-3 sm:px-6">
-              <h2 className="font-headline text-lg font-bold text-on-surface">{t("nav.cvPreview", "CV Preview")}</h2>
-              <button
-                type="button"
-                onClick={() => setIsCvModalOpen(false)}
-                aria-label={t("nav.close", "Close")}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/50 text-on-surface"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="min-h-0 flex-1 bg-surface-container-low">
-              {cvHref ? (
-                isPdfDocument ? (
-                  <object data={cvHref} type="application/pdf" className="h-full w-full">
-                    <div className="grid h-full place-items-center p-6 text-center">
-                      <div>
-                        <p className="mb-3 text-sm text-on-surface-variant">{t("nav.cvPreviewUnavailable", "CV preview is unavailable in this browser.")}</p>
-                        <a
-                          href={cvHref}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container"
-                        >
-                          <Download className="h-4 w-4" />
-                          {t("nav.openInNewTab", "Open in new tab")}
-                        </a>
-                      </div>
-                    </div>
-                  </object>
-                ) : (
-                  <iframe
-                    src={cvHref}
-                    title={t("nav.cvPreview", "CV Preview")}
-                    className="h-full w-full"
-                  />
-                )
-              ) : (
-                <div className="grid h-full place-items-center p-6 text-center">
-                  <p className="text-sm text-on-surface-variant">{t("nav.cvNotAvailable", "CV is not available right now.")}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 border-t border-outline-variant/30 px-4 py-3 sm:px-6">
-              <button
-                type="button"
-                onClick={() => setIsCvModalOpen(false)}
-                className="rounded-full border border-outline-variant/50 px-4 py-2 text-sm font-semibold text-on-surface"
-              >
-                {t("nav.close", "Close")}
-              </button>
-              {isDataCv ? (
-                <button
-                  type="button"
-                  onClick={handleCvDownload}
-                  className={`inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container ${!cvHref ? "pointer-events-none opacity-60" : ""}`}
-                  disabled={!cvHref}
-                >
-                  <Download className="h-4 w-4" />
-                  {t("nav.download", "Download")}
-                </button>
-              ) : (
-                <a
-                  href={cvHref ?? "#"}
-                  download={`${cvFileName}.pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-on-primary-container ${!cvHref ? "pointer-events-none opacity-60" : ""}`}
-                >
-                  <Download className="h-4 w-4" />
-                  {t("nav.download", "Download")}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import AdminLoginFlow from "@/Components/admin/AdminLoginFlow";
 import AdminPanel from "@/Components/admin/AdminPanel";
 import { getAdminSession } from "@/lib/admin-auth";
+
+export const metadata: Metadata = {
+  title: "Admin",
+  robots: { index: false, follow: false, nocache: true },
+};
 
 export default async function AdminPage() {
   const admin = await getAdminSession();

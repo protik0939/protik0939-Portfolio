@@ -5,6 +5,8 @@ import { BookOpenText, BriefcaseBusiness, Code2, Languages } from "lucide-react"
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
+import ResumeViewerModal from "@/Components/ResumeViewerModal";
+import { normalizeCvSource } from "@/lib/cv";
 import { calculateMonthsSince, formatExperienceDuration, toBengaliNumber } from "@/lib/experience";
 import Link from "next/link";
 import { SlSocialGithub, SlSocialLinkedin } from "react-icons/sl";
@@ -42,36 +44,6 @@ type HeroSectionProps = {
   };
 };
 
-function normalizeCvSource(raw: string | null | undefined): string | null {
-  const value = raw?.trim() ?? "";
-  if (!value || value === "#contact") {
-    return null;
-  }
-
-  if (value.startsWith("data:")) {
-    const commaIndex = value.indexOf(",");
-    if (commaIndex < 0) {
-      return value;
-    }
-
-    const prefix = value.slice(0, commaIndex + 1);
-    const payload = value.slice(commaIndex + 1).replace(/\s+/g, "");
-    return `${prefix}${payload}`;
-  }
-
-  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
-    return value;
-  }
-
-  const compact = value.replace(/\s+/g, "");
-  if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 120) {
-    const mimeType = compact.startsWith("JVBERi0") ? "application/pdf" : "application/octet-stream";
-    return `data:${mimeType};base64,${compact}`;
-  }
-
-  return value;
-}
-
 export default function HeroSection({ siteConfig, skills, stats }: Readonly<HeroSectionProps>) {
   const { language, t } = useAppUI();
   const isBn = language === "bn";
@@ -79,6 +51,8 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
   const formatNumber = (value: number) => (isBn ? toBengaliNumber(value) : String(value));
 
   const [showScrollCue, setShowScrollCue] = useState(true);
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+  const closeResumeModal = useCallback(() => setIsResumeModalOpen(false), []);
 
   useEffect(() => {
     const handleScroll = () => setShowScrollCue(window.scrollY < 80);
@@ -119,45 +93,9 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
   const heroImageUrl = siteConfig?.heroImageUrl?.trim()
     ? siteConfig.heroImageUrl
     : "https://lh3.googleusercontent.com/aida-public/AB6AXuC1NiI6GYG8-JemI0BPPrJsRqw4YeIJA50jWLCUPLndXzbpP4-VcjPWYvOohYtXMlJuwI2lw9KG3oCT74RKpJUrnnnY-5NaYi_PQIrZqqzcxl3SfveEHG7pGw7aHzKgVFKsFpwfRrY7UkjFuT15-p4oSRFBvxM9ud81WmBaCqtHv8TVVItOGc_zWOBFCxfvx4fW0h8HIMz2UgHz1d6uM0VSGvKtWJKJ7tSFtPg5m2R7e4EVaUAN3BbQ2RjlzTwsA69joQ2dr4MbDSK8";
-  const cvHref = normalizeCvSource(siteConfig?.cvUrl) ?? "#contact";
-  const cvTarget = cvHref.startsWith("http") || cvHref.startsWith("data:") ? "_blank" : undefined;
-  const isDataCv = cvHref.startsWith("data:");
-  const cvFileName = "Md. Sadat Alam Protik - Full Stack Developer Resume";
+  const cvHref = normalizeCvSource(siteConfig?.cvUrl);
+  const hasCvDocument = Boolean(cvHref);
 
-  const handleCvDownload = useCallback(() => {
-    if (!isDataCv) {
-      return;
-    }
-
-    const commaIndex = cvHref.indexOf(",");
-    if (commaIndex < 0) {
-      return;
-    }
-
-    const metadata = cvHref.slice(0, commaIndex);
-    const base64 = cvHref.slice(commaIndex + 1);
-    const mimeMatch = /data:([^;]+);base64/i.exec(metadata);
-    const mimeType = mimeMatch?.[1] ?? "application/octet-stream";
-
-    try {
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i += 1) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      const blobUrl = URL.createObjectURL(new Blob([bytes], { type: mimeType }));
-      const anchor = document.createElement("a");
-      anchor.href = blobUrl;
-      anchor.download = `${cvFileName}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      globalThis.open(cvHref, "_blank", "noreferrer");
-    }
-  }, [cvFileName, cvHref, isDataCv]);
   const heroStats = [
     {
       id: "projects",
@@ -205,15 +143,16 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
 
 
   return (
-    <section className="relative flex min-h-[calc(100svh-5rem)] items-center min-[1260px]:items-stretch overflow-hidden px-8 min-[1260px]:px-20 pt-6 min-[1260px]:pt-8" id="home">
+    <>
+      <section className="relative flex min-h-[calc(100svh-5rem)] items-start min-[1260px]:items-stretch overflow-hidden px-8 min-[1260px]:px-20 pt-6 min-[1260px]:pt-8" id="home">
       <div className="absolute top-1/4 -left-20 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
       <div className="absolute right-0 bottom-1/4 -mr-20 h-96 w-96 rounded-full bg-secondary/10 blur-[120px]" />
 
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-12 min-[1260px]:grid-cols-2">
+      <div className="mx-auto my-auto grid w-full max-w-7xl grid-cols-1 gap-12 min-[1260px]:my-0 min-[1260px]:grid-cols-2">
         <AnimatedReveal className="z-10" delay={0.05}>
           <div data-reveal className="mx-auto flex w-full max-w-2xl flex-col justify-center min-[1260px]:h-full min-[1260px]:max-w-none">
             {/* Dynamic Highlighted Professional Experience Badge */}
-            <div className="mb-4 inline-flex items-center gap-2.5 rounded-full border border-secondary/40 bg-secondary/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-on-surface shadow-[0_0_20px_rgba(60,221,199,0.18)] backdrop-blur-md transition-all hover:border-secondary/70 hover:shadow-[0_0_25px_rgba(60,221,199,0.3)]">
+            <div className="w-fit mb-4 inline-flex items-center gap-2.5 rounded-full border border-secondary/40 bg-secondary/10 px-4 py-1.5 text-xs sm:text-sm font-semibold text-on-surface shadow-[0_0_20px_rgba(60,221,199,0.18)] backdrop-blur-md transition-all hover:border-secondary/70 hover:shadow-[0_0_25px_rgba(60,221,199,0.3)]">
               <span className="relative flex h-2.5 w-2.5 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-secondary" />
@@ -232,29 +171,27 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
             <p className="mb-4 text-lg leading-relaxed text-on-surface-variant min-[1260px]:max-w-lg">{heroDescription}</p>
             <p className="mb-3 text-sm leading-relaxed text-on-surface-variant min-[1260px]:max-w-xl">{hiringSnapshot}</p>
 
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap flex-row items-center gap-2">
               <Link
-                className="rounded-full bg-linear-to-r from-primary to-primary-container px-8 py-4 font-bold text-white shadow-[0_0_20px_rgba(131,66,244,0.3)] transition-all hover:shadow-[0_0_30px_rgba(131,66,244,0.5)]"
+                className="rounded-full bg-linear-to-r from-primary to-primary-container px-4 py-2 font-bold text-white shadow-[0_0_20px_rgba(131,66,244,0.3)] transition-all hover:shadow-[0_0_30px_rgba(131,66,244,0.5)]"
                 href="#projects"
               >
                 {t("hero.primaryCta", "View Projects")}
               </Link>
-              {isDataCv ? (
+              {hasCvDocument ? (
                 <button
                   type="button"
-                  onClick={handleCvDownload}
-                  className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
+                  onClick={() => setIsResumeModalOpen(true)}
+                  className="rounded-full border border-outline-variant/30 px-4 py-2 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
                 >
-                  {t("hero.secondaryCta", "Download Resume")}
+                  {t("hero.secondaryCta", "View Resume")}
                 </button>
               ) : (
                 <Link
-                  className="rounded-full border border-outline-variant/30 px-8 py-4 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
-                  href={cvHref}
-                  target={cvTarget}
-                  rel={cvTarget ? "noreferrer" : undefined}
+                  className="rounded-full border border-outline-variant/30 px-4 py-2 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
+                  href="#contact"
                 >
-                  {t("hero.secondaryCta", "Download Resume")}
+                  {t("hero.secondaryCta", "View Resume")}
                 </Link>
               )}
             </div>
@@ -310,11 +247,11 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
           </div>
         </AnimatedReveal>
 
-        <AnimatedReveal delay={0.2} className="h-full">
-          <div className="group relative mx-auto mb-10 h-full w-full max-w-md min-[1260px]:mb-0 min-[1260px]:max-w-none" data-reveal>
+        <AnimatedReveal delay={0.2} className="min-[1260px]:h-full">
+          <div className="group relative mx-auto aspect-4/5 w-full max-w-md min-[1260px]:h-full min-[1260px]:max-w-none min-[1260px]:aspect-auto" data-reveal>
             <div className="absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/25 blur-[90px] animate-[pulse_3.6s_ease-in-out_infinite]" />
             <div className="absolute top-1/2 left-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full bg-secondary/20 blur-[70px] animate-[pulse_4.8s_ease-in-out_infinite]" />
-            <div className="hero-image-veil relative z-10 h-full aspect-4/5 min-[1260px]:aspect-auto">
+            <div className="hero-image-veil relative z-10 h-full w-full">
               <Image
                 fill
                 priority
@@ -399,5 +336,8 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
         </div>
       </div>
     </section>
+
+      <ResumeViewerModal isOpen={isResumeModalOpen} onClose={closeResumeModal} cvHref={cvHref} />
+    </>
   );
 }

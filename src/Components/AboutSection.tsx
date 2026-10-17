@@ -60,7 +60,7 @@ export default function AboutSection({ siteConfig, projectCount = 0 }: Readonly<
               <div className="glass-panel journey-details space-y-6 rounded-3xl p-8 leading-loose text-on-surface-variant md:p-12">
                 <p>{aboutDescription || "My journey is now loaded from database and editable from admin panel."}</p>
                 <p>{aboutSecondaryDescription || "I specialize in React ecosystem, Node.js microservices, and cloud-native architecture."}</p>
-                <div className="flex gap-8 pt-6">
+                <div className="flex md:flex-row flex-col gap-8 pt-6">
                   <div className="flex flex-col">
                     <span className="text-3xl font-bold text-on-surface">{personalExperienceDuration}</span>
                     <span className="text-xs tracking-widest text-secondary uppercase">

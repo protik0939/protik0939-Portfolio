@@ -1,0 +1,19 @@
+import type { MetadataRoute } from "next";
+import { SITE_NAME } from "@/lib/site-url";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: `${SITE_NAME} | Full Stack Developer`,
+    short_name: "Protik",
+    description: "Portfolio of Sadat Alam Protik, Full Stack Developer from Dhaka, Bangladesh.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#0e0e0e",
+    theme_color: "#0e0e0e",
+    icons: [
+      { src: "/favicon.svg", type: "image/svg+xml", sizes: "any", purpose: "any" },
+      { src: "/icon-192.png", type: "image/png", sizes: "192x192", purpose: "any" },
+      { src: "/icon-512.png", type: "image/png", sizes: "512x512", purpose: "any" },
+    ],
+  };
+}

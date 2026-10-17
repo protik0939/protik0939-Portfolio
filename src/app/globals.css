@@ -777,6 +777,494 @@ html.lenis body {
   }
 }
 
+/* ── Quick navigation bottom sheet ─────────────────────────────────────── */
+
+.quick-nav-backdrop {
+  background: rgb(0 0 0 / 0.55);
+  transition: opacity 260ms ease;
+}
+
+/* Stays mounted at all times so the panel can slide back down on close.
+   Floats just above the bottom navigation so both stay visible together, and
+   crops a mirrored dock notch in its bottom edge so the active disc reads as a
+   full circle nested between the panel and the bar. */
+.quick-nav-sheet {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-container-high) 58%, transparent),
+      color-mix(in srgb, var(--surface-container) 42%, transparent)
+    );
+  -webkit-backdrop-filter: blur(30px) saturate(185%);
+  backdrop-filter: blur(30px) saturate(185%);
+  box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.7);
+  /* Layers, top to bottom: notch cut (intersect), right + left fillet discs, then the
+     "keep" area = everything outside the shoulder strip (split into the strip's two
+     sides and the body above it). Result = keep + fillet discs - notch circle. */
+  -webkit-mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(100% + var(--dock-panel-y)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      #000 0 var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      #000 0 var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    linear-gradient(
+      90deg,
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x))
+    ),
+    linear-gradient(#000, #000);
+  mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(100% + var(--dock-panel-y)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      #000 0 var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      #000 0 var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    linear-gradient(
+      90deg,
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x))
+    ),
+    linear-gradient(#000, #000);
+  -webkit-mask-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% var(--dock-panel-fillet-h),
+    100% calc(100% - var(--dock-panel-fillet-h));
+  mask-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% var(--dock-panel-fillet-h),
+    100% calc(100% - var(--dock-panel-fillet-h));
+  -webkit-mask-position: 0 0, 0 0, 0 0, 0 100%, 0 0;
+  mask-position: 0 0, 0 0, 0 0, 0 100%, 0 0;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in, source-over, source-over, source-over, source-over;
+  mask-composite: intersect, add, add, add, add;
+  opacity: 0;
+  translate: 0 10px;
+  transition:
+    translate 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 260ms ease;
+}
+
+.quick-nav-sheet.is-open {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Notch outline for the panel (mirror of .bottom-nav-shell::after): the panel's border is
+   masked away along its notch, so a 1px band is redrawn along the ring (above the tangent
+   points) and along each fillet disc (below them, in the strip at the bottom edge). */
+.quick-nav-sheet::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--outline-variant) 40%, transparent);
+  -webkit-mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(100% + var(--dock-panel-fillet-h) + var(--dock-panel-y)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r) calc(var(--dock-r) + 0.5px),
+      transparent calc(var(--dock-r) + 1px)
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x))
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      transparent 0 calc(var(--dock-panel-fillet) - 1px),
+      #000 calc(var(--dock-panel-fillet) - 0.5px) var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      transparent 0 calc(var(--dock-panel-fillet) - 1px),
+      #000 calc(var(--dock-panel-fillet) - 0.5px) var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    );
+  mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(100% + var(--dock-panel-fillet-h) + var(--dock-panel-y)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r) calc(var(--dock-r) + 0.5px),
+      transparent calc(var(--dock-r) + 1px)
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x))
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      transparent 0 calc(var(--dock-panel-fillet) - 1px),
+      #000 calc(var(--dock-panel-fillet) - 0.5px) var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-panel-fillet-x)) calc(100% - var(--dock-panel-fillet)),
+      transparent 0 calc(var(--dock-panel-fillet) - 1px),
+      #000 calc(var(--dock-panel-fillet) - 0.5px) var(--dock-panel-fillet),
+      transparent calc(var(--dock-panel-fillet) + 0.5px)
+    );
+  -webkit-mask-size:
+    100% calc(100% - var(--dock-panel-fillet-h)),
+    100% var(--dock-panel-fillet-h),
+    100% 100%,
+    100% 100%;
+  mask-size:
+    100% calc(100% - var(--dock-panel-fillet-h)),
+    100% var(--dock-panel-fillet-h),
+    100% 100%,
+    100% 100%;
+  -webkit-mask-position: 0 0, 0 100%, 0 0, 0 0;
+  mask-position: 0 0, 0 100%, 0 0, 0 0;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-over, source-in, source-over, source-over;
+  mask-composite: add, intersect, add, add;
+}
+
+.quick-nav-tile {
+  opacity: 0;
+  translate: 0 16px;
+  transition:
+    opacity 300ms ease,
+    translate 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.quick-nav-sheet.is-open .quick-nav-tile {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* ── Liquid glass surface (floating bottom navigation) ─────────────────── */
+
+.liquid-glass {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-container-high) 72%, transparent),
+      color-mix(in srgb, var(--surface-container) 52%, transparent)
+    );
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  box-shadow:
+    0 18px 42px -20px rgb(0 0 0 / 0.7),
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    inset 0 -1px 0 rgb(255 255 255 / 0.05);
+}
+
+@keyframes bottom-nav-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@property --bottom-nav-notch-index {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: -2;
+}
+
+/* Dock geometry shared by the bar's notch/disc and the quick-nav panel's mirrored notch. */
+.bottom-nav,
+.quick-nav-sheet {
+  --dock-r: 44px;
+  --dock-y: -12px;
+  /* Shoulder fillets. The notch ring (--dock-r) sits 12px outside the 32px disc, so the gap
+     around the disc is uniform. Each shoulder is a disc of radius --dock-fillet inside the
+     bar, tangent to the flat top edge AND externally tangent to the notch ring, so the
+     edge curves smoothly into the ring with no kink. With the ring centre at (0, dock-y):
+       fillet-x = sqrt((dock-r + fillet)^2 - (fillet - dock-y)^2)  -> 55.43px
+       fillet-h = height of the tangent point below the edge       -> 10px
+     The gap between edge, fillet and ring (a rectangle fillet-x wide, fillet-h tall, minus
+     the fillet discs) is what gets cut out of the bar. */
+  --dock-fillet: 20px;
+  --dock-fillet-x: 55.43px;
+  --dock-fillet-h: 10px;
+  /* Panel side, mirrored onto the panel's bottom edge (ring centre sits --dock-panel-y below it):
+       fillet-x = sqrt((dock-r + fillet)^2 - (fillet + panel-y)^2)  -> 60.1px
+       fillet-h = dock-r * (fillet + panel-y) / (dock-r + fillet) - panel-y -> 13.13px */
+  --dock-panel-y: 2px;
+  --dock-panel-fillet: 20px;
+  --dock-panel-fillet-x: 60.1px;
+  --dock-panel-fillet-h: 13.13px;
+  --dock-corner: 1.75rem;
+  /* Distance from a bar end to the dock centre (it drives the tab row's side inset, i.e. the
+     empty space left/right of the tabs). The outer shoulder starts at edge - dock-fillet-x
+     (~12px from the bar end) and tucks under the rounded end, which only trims a few px of
+     its top; asking for the full corner + dock-fillet-x (83px) left ~45px of dead space. */
+  --dock-edge-x: 68px;
+  /* Inset of the tab row, derived so the first/last dock centre lands on --dock-edge-x:
+     edge = inset + (width - 2*inset)/10  ->  inset = 1.25*edge - 12.5%.
+     Capped at (50% - 125px) so every tab cell keeps at least 50px for its label;
+     below that the dock only shaves a few px off the corner arc. */
+  --bottom-nav-inset: max(0px, min(calc(var(--dock-edge-x) * 1.25 - 12.5%), calc(50% - 125px)));
+  --bottom-nav-notch-x: calc(
+    var(--bottom-nav-inset) + (var(--bottom-nav-notch-index) + 0.5) * (100% - 2 * var(--bottom-nav-inset)) / 5
+  );
+}
+
+.bottom-nav {
+  animation: bottom-nav-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  box-shadow: 0 18px 42px -20px rgb(0 0 0 / 0.7);
+  transition: --bottom-nav-notch-index 520ms cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.bottom-nav-tabs {
+  padding-inline: var(--bottom-nav-inset);
+}
+
+/* Glass shell: a travelling circular bite is masked out where the disc docks.
+   Layers, top to bottom: the notch ring cut (intersect), the two shoulder fillet discs,
+   then the "keep" area = the bar outside the shoulder strip (the strip's two sides plus
+   the body below it). Result = (keep + fillet discs) - notch ring, which leaves concave
+   shoulders tangent to both the top edge and the ring. */
+.bottom-nav-shell {
+  -webkit-mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) var(--dock-y),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)) var(--dock-fillet),
+      #000 0 var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)) var(--dock-fillet),
+      #000 0 var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    linear-gradient(
+      90deg,
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x))
+    ),
+    linear-gradient(#000, #000);
+  mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) var(--dock-y),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)) var(--dock-fillet),
+      #000 0 var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)) var(--dock-fillet),
+      #000 0 var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    linear-gradient(
+      90deg,
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x))
+    ),
+    linear-gradient(#000, #000);
+  -webkit-mask-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% var(--dock-fillet-h),
+    100% calc(100% - var(--dock-fillet-h));
+  mask-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% var(--dock-fillet-h),
+    100% calc(100% - var(--dock-fillet-h));
+  -webkit-mask-position: 0 0, 0 0, 0 0, 0 0, 0 var(--dock-fillet-h);
+  mask-position: 0 0, 0 0, 0 0, 0 0, 0 var(--dock-fillet-h);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in, source-over, source-over, source-over, source-over;
+  mask-composite: intersect, add, add, add, add;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.18),
+    inset 0 -1px 0 rgb(255 255 255 / 0.05);
+}
+
+/* Outline for the notch. The shell's own border is masked away along the cut-out, so this
+   pseudo-element redraws it: a 1px band just inside the bar along the notch ring (below the
+   tangent points) plus a 1px band along each fillet disc (above the tangent points). Both
+   bands use the same centres/radii as the shell mask, so they follow it exactly.
+   Layers, top to bottom: ring band (add), fillet strip (intersect), right + left fillet
+   rims (add). inset:-1px aligns it with the shell's border box. */
+.bottom-nav-shell::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--outline-variant) 30%, transparent);
+  -webkit-mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(var(--dock-y) - var(--dock-fillet-h)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r) calc(var(--dock-r) + 0.5px),
+      transparent calc(var(--dock-r) + 1px)
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x))
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)) var(--dock-fillet),
+      transparent 0 calc(var(--dock-fillet) - 1px),
+      #000 calc(var(--dock-fillet) - 0.5px) var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)) var(--dock-fillet),
+      transparent 0 calc(var(--dock-fillet) - 1px),
+      #000 calc(var(--dock-fillet) - 0.5px) var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    );
+  mask-image:
+    radial-gradient(
+      circle at var(--bottom-nav-notch-x) calc(var(--dock-y) - var(--dock-fillet-h)),
+      transparent 0 calc(var(--dock-r) - 0.5px),
+      #000 var(--dock-r) calc(var(--dock-r) + 0.5px),
+      transparent calc(var(--dock-r) + 1px)
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)),
+      #000 calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)),
+      transparent calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x))
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) + var(--dock-fillet-x)) var(--dock-fillet),
+      transparent 0 calc(var(--dock-fillet) - 1px),
+      #000 calc(var(--dock-fillet) - 0.5px) var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    ),
+    radial-gradient(
+      circle at calc(var(--bottom-nav-notch-x) - var(--dock-fillet-x)) var(--dock-fillet),
+      transparent 0 calc(var(--dock-fillet) - 1px),
+      #000 calc(var(--dock-fillet) - 0.5px) var(--dock-fillet),
+      transparent calc(var(--dock-fillet) + 0.5px)
+    );
+  -webkit-mask-size:
+    100% calc(100% - var(--dock-fillet-h)),
+    100% var(--dock-fillet-h),
+    100% 100%,
+    100% 100%;
+  mask-size:
+    100% calc(100% - var(--dock-fillet-h)),
+    100% var(--dock-fillet-h),
+    100% 100%,
+    100% 100%;
+  -webkit-mask-position: 0 var(--dock-fillet-h), 0 0, 0 0, 0 0;
+  mask-position: 0 var(--dock-fillet-h), 0 0, 0 0, 0 0;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-over, source-in, source-over, source-over;
+  mask-composite: add, intersect, add, add;
+}
+
+/* Floating circular background that rises above the bar for the active tab. */
+.bottom-nav-bump {
+  position: absolute;
+  top: -12px;
+  left: var(--bottom-nav-notch-x);
+  z-index: 1;
+  width: 4rem;
+  height: 4rem;
+  translate: -50% -50%;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--primary) 34%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-container-high) 94%, transparent),
+    color-mix(in srgb, var(--surface-container) 80%, transparent)
+  );
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  box-shadow:
+    0 12px 26px -14px rgb(0 0 0 / 0.72),
+    0 0 24px -8px color-mix(in srgb, var(--primary) 60%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  transition: opacity 240ms ease;
+}
+
+.bottom-nav-icon {
+  transition:
+    transform 360ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    color 240ms ease;
+}
+
+@keyframes bottom-nav-icon-pop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  55% {
+    transform: translateY(-2.75rem) scale(1.16);
+  }
+
+  100% {
+    transform: translateY(-2.4375rem) scale(1.06);
+  }
+}
+
+.bottom-nav-item.is-active .bottom-nav-icon {
+  animation: bottom-nav-icon-pop 460ms cubic-bezier(0.34, 1.2, 0.5, 1) backwards;
+  transform: translateY(-2.4375rem) scale(1.06);
+}
+
 @keyframes media-slide-prev {
   from {
     opacity: 0;

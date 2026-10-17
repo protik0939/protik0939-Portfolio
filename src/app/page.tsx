@@ -11,12 +11,73 @@ import ProjectsSection from "@/Components/ProjectsSection";
 import SiteFooter from "@/Components/SiteFooter";
 import SkillsSection from "@/Components/SkillsSection";
 import TopAppBar from "@/Components/TopAppBar";
-import { getHomeContent } from "@/lib/public-content";
+import { getHomeContent, getSiteConfig, pickLocalized } from "@/lib/public-content";
+import { resolveRequestLanguage } from "@/lib/request-language";
+import { getSiteUrl, pickSeoDescription, SITE_NAME, SOCIAL_PROFILES } from "@/lib/site-url";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ lang?: string }>;
+}): Promise<Metadata> {
+  const query = await searchParams;
+  const language = await resolveRequestLanguage(query.lang);
+  const siteConfig = await getSiteConfig();
+
+  const description = pickSeoDescription(
+    siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
+  );
+
+  return {
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      url: "/",
+      title: `${SITE_NAME} | Full Stack Developer (Next.js, React, Node.js)`,
+      description,
+      locale: language === "bn" ? "bn_BD" : "en_US",
+    },
+    twitter: { card: "summary_large_image", description },
+  };
+}
+
 export default async function Home() {
   const homeContent = await getHomeContent();
+  const siteUrl = getSiteUrl();
+
+  // Structured data: tells Google who this site is about and ties the social profiles together.
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: SITE_NAME,
+        inLanguage: ["en", "bn"],
+        publisher: { "@id": `${siteUrl}/#person` },
+      },
+      {
+        "@type": "Person",
+        "@id": `${siteUrl}/#person`,
+        name: SITE_NAME,
+        alternateName: "Protik",
+        url: siteUrl,
+        jobTitle: "Full Stack Developer",
+        description: pickSeoDescription(homeContent.siteConfig?.siteDescriptionEn),
+        image: homeContent.siteConfig?.heroImageUrl ?? undefined,
+        email: homeContent.siteConfig?.contactEmail ? `mailto:${homeContent.siteConfig.contactEmail}` : undefined,
+        address: { "@type": "PostalAddress", addressLocality: "Dhaka", addressCountry: "BD" },
+        knowsAbout: homeContent.skills.slice(0, 20).map((skill) => skill.nameEn),
+        sameAs: SOCIAL_PROFILES,
+      },
+    ],
+  };
 
   const siteConfig = homeContent.siteConfig
     ? {
@@ -145,6 +206,11 @@ export default async function Home() {
 
   return (
     <div className="relative isolate overflow-hidden selection:bg-primary-container selection:text-white">
+      <script
+        type="application/ld+json"
+        // JSON.stringify output is escaped for "<" so the payload can't break out of the script tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
+      />
       <AnimatedBackgroundGlow />
       <PortfolioAnimations />
       <TopAppBar siteConfig={siteConfig} />

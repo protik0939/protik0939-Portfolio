@@ -32,14 +32,18 @@ export default function SkillsSection({ skills = [] }: Readonly<SkillsSectionPro
     return accumulator;
   }, {});
 
-  const groups = Object.entries(grouped).map(([categoryKey, items]) => {
-    const title = language === "bn" ? items[0]?.categoryTitleBn : items[0]?.categoryTitleEn;
-    return {
-      key: categoryKey,
-      title: title || categoryKey,
-      items: items,
-    };
-  });
+  // Skills arrive sorted by descending sortOrder, which puts "Others" first.
+  // Reverse the categories so the stack reads from core languages outward.
+  const groups = Object.entries(grouped)
+    .reverse()
+    .map(([categoryKey, items]) => {
+      const title = language === "bn" ? items[0]?.categoryTitleBn : items[0]?.categoryTitleEn;
+      return {
+        key: categoryKey,
+        title: title || categoryKey,
+        items: items,
+      };
+    });
 
   const iconSet = [Layers3, Database, Wrench];
   const accentSet = [
