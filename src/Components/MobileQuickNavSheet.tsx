@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { X } from "lucide-react";
 import { useEffect, type ComponentType, type CSSProperties } from "react";
 
@@ -115,7 +116,7 @@ export default function MobileQuickNavSheet({
 
               if (tile.href) {
                 return (
-                  <a
+                  <Link
                     key={tile.key}
                     href={tile.href}
                     onClick={onClose}
@@ -125,7 +126,7 @@ export default function MobileQuickNavSheet({
                     aria-current={tile.isActive ? "true" : undefined}
                   >
                     {content}
-                  </a>
+                  </Link>
                 );
               }
 

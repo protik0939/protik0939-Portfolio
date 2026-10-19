@@ -164,6 +164,14 @@ export default function MobileBottomNav() {
           isActive: activeSectionKey === item.key,
         })),
       );
+    } else {
+      tiles.push({
+        key: "home",
+        label: t("nav.home", "Home"),
+        icon: House,
+        href: `/?lang=${language}`,
+        isActive: false,
+      });
     }
 
     tiles.push(
