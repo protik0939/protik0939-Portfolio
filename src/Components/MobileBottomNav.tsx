@@ -12,6 +12,7 @@ import {
   Languages,
   Mail,
   Menu,
+  MonitorDown,
   MoonStar,
   Newspaper,
   Puzzle,
@@ -151,6 +152,28 @@ export default function MobileBottomNav() {
     return "";
   }, [activeSectionId, isHomePage, pathname]);
 
+  const handleInstallClick = useCallback(async () => {
+    setIsSheetOpen(false);
+    const win = typeof window !== "undefined" ? (window as Window & { __deferredInstallPrompt?: Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> } }) : undefined;
+    if (win?.__deferredInstallPrompt) {
+      try {
+        await win.__deferredInstallPrompt.prompt();
+        const choice = await win.__deferredInstallPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          win.__deferredInstallPrompt = undefined;
+        }
+      } catch (err) {
+        console.error("Install prompt error:", err);
+      }
+    } else {
+      const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const hint = isIos
+        ? t("pwa.iosInstallHint", 'Tap Share, then choose "Add to Home Screen".')
+        : t("pwa.installHint", 'Open your browser menu and choose "Install app" or "Add to Home screen".');
+      alert(hint);
+    }
+  }, [t]);
+
   const sheetTiles = useMemo<MobileQuickNavTile[]>(() => {
     const tiles: MobileQuickNavTile[] = [];
 
@@ -198,10 +221,11 @@ export default function MobileBottomNav() {
       },
       { key: "language", label: t("nav.language", "Language"), icon: Languages, onClick: toggleLanguage },
       { key: "theme", label: t("nav.theme", "Theme"), icon: theme === "dark" ? Sun : MoonStar, onClick: toggleTheme },
+      { key: "install", label: t("pwa.install", "Install App"), icon: MonitorDown, onClick: handleInstallClick },
     );
 
     return tiles;
-  }, [activeSectionKey, cvHref, isHomePage, language, t, theme, toggleLanguage, toggleTheme]);
+  }, [activeSectionKey, cvHref, handleInstallClick, isHomePage, language, t, theme, toggleLanguage, toggleTheme]);
 
   const handleTabClick = useCallback(
     (tab: BottomNavTab, event: ReactMouseEvent<HTMLAnchorElement>) => {

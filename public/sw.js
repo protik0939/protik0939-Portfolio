@@ -1,11 +1,12 @@
 /* Service worker for the portfolio PWA: offline support + background sync. */
-const VERSION = "v1";
+const VERSION = "v2";
 const PAGES_CACHE = `portfolio-pages-${VERSION}`;
 const ASSETS_CACHE = `portfolio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline";
 
 const PRECACHE_ASSETS = [
   "/manifest.webmanifest",
+  "/manifest.json",
   "/favicon.svg",
   "/icon-192.png",
   "/icon-512.png",

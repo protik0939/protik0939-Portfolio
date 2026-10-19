@@ -57,6 +57,7 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   },
+  manifest: "/manifest.webmanifest",
   // SVG stays the primary icon for browsers that support it; the multi-size ICO and PNGs are
   // generated from the same artwork for surfaces that ignore SVG (Chrome bookmarks/history,
   // Google search results, Safari, iOS home screen).
@@ -90,6 +91,14 @@ export default async function RootLayout({
 
   return (
     <html lang={language} className={`${poppins.variable} ${hindSiliguri.variable} antialiased dark`} suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#0e0e0e" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href={`/apple-touch-icon.png?v=${ICON_VERSION}`} />
+      </head>
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         {/* Captures beforeinstallprompt before React hydrates, so the event is never lost. */}
         <script

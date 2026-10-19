@@ -7,7 +7,10 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Protik",
     description: "Portfolio of Sadat Alam Protik, Full Stack Developer from Dhaka, Bangladesh.",
     start_url: "/",
+    id: "/",
+    scope: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#0e0e0e",
     theme_color: "#0e0e0e",
     icons: [

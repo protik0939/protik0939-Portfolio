@@ -71,26 +71,18 @@ export default function PwaInstallButton() {
     }
   }, []);
 
-  // On mobile, automatically trigger Chrome's native install dialog.
+  // Store the install prompt event without triggering it prematurely.
+  // Chrome on Android and Desktop strictly requires a user gesture (click/tap)
+  // to invoke event.prompt(). Calling it automatically causes Chrome to reject
+  // with "must be called with a user gesture" and permanently burns/invalidates the event.
   const adoptEvent = useCallback(
     (event?: BeforeInstallPromptEvent | null) => {
       if (!event || justInstalled) {
         return;
       }
-
-      if (getIsMobileSnapshot()) {
-        void runPrompt(event).then((didShow) => {
-          // Keep the event around for a manual retry button if the auto prompt failed.
-          if (!didShow) {
-            setPromptEvent(event);
-          }
-        });
-        return;
-      }
-
       setPromptEvent((current) => current ?? event);
     },
-    [justInstalled, runPrompt],
+    [justInstalled],
   );
 
   useEffect(() => {
@@ -105,34 +97,54 @@ export default function PwaInstallButton() {
       adoptEvent(win.__deferredInstallPrompt);
     };
 
+    const handleInstalled = () => {
+      setJustInstalled(true);
+      setPromptEvent(null);
+      win.__deferredInstallPrompt = undefined;
+    };
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("pwa-install-ready", handleInstallReady);
+    window.addEventListener("appinstalled", handleInstalled);
 
-    // The inline script in the layout may have captured the event before React mounted.
+    // If inline script already captured the prompt before React hydration:
+    if (win.__deferredInstallPrompt) {
+      adoptEvent(win.__deferredInstallPrompt);
+    }
     const adoptTimer = window.setTimeout(handleInstallReady, 0);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("pwa-install-ready", handleInstallReady);
+      window.removeEventListener("appinstalled", handleInstalled);
       window.clearTimeout(adoptTimer);
     };
   }, [adoptEvent]);
 
-  const handleInstall = useCallback(() => {
-    if (!promptEvent) {
+  const handleInstall = useCallback(async () => {
+    const win = typeof window !== "undefined" ? (window as WindowWithPrompt) : undefined;
+    const event = promptEvent ?? win?.__deferredInstallPrompt;
+
+    if (!event) {
       setShowHint((current) => !current);
       return;
     }
 
-    const event = promptEvent;
-    setPromptEvent(null);
-    void runPrompt(event).then((didShow) => {
-      if (!didShow) {
-        setPromptEvent(event);
-        setShowHint(true);
+    try {
+      await event.prompt();
+      const choice = await event.userChoice;
+      if (choice.outcome === "accepted") {
+        setJustInstalled(true);
+        setPromptEvent(null);
+        if (win) {
+          win.__deferredInstallPrompt = undefined;
+        }
       }
-    });
-  }, [promptEvent, runPrompt]);
+    } catch (err) {
+      console.error("PWA install prompt error:", err);
+      setShowHint(true);
+    }
+  }, [promptEvent]);
 
   const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const hintText = isIos
@@ -149,7 +161,7 @@ export default function PwaInstallButton() {
         <button
           type="button"
           onClick={handleInstall}
-          className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary shadow-lg shadow-primary/25 transition hover:brightness-110 active:scale-95"
         >
           <MonitorDown className="h-4 w-4" />
           {t("pwa.install", "Install App")}
@@ -160,14 +172,18 @@ export default function PwaInstallButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col items-center md:items-end gap-2">
       <button
         type="button"
         onClick={handleInstall}
         className="flex max-w-xs items-center gap-2 text-center text-xs text-on-surface-variant transition hover:text-on-surface md:text-right"
       >
         <MonitorDown className="h-5 w-5 shrink-0 text-primary" />
-        <span>{t("pwa.desktopHint", "Tap the icon for installing the app (Only works on supported browser)")}</span>
+        <span>
+          {promptEvent
+            ? t("pwa.install", "Install App")
+            : t("pwa.desktopHint", "Tap the icon for installing the app (Only works on supported browser)")}
+        </span>
       </button>
       {showHint ? <p className="max-w-xs text-right text-xs text-on-surface-variant">{hintText}</p> : null}
     </div>

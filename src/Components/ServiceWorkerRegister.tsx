@@ -40,17 +40,7 @@ export default function ServiceWorkerRegister() {
       return;
     }
 
-    const register = () => {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
-    };
-
-    if (document.readyState === "complete") {
-      register();
-    } else {
-      window.addEventListener("load", register, { once: true });
-    }
-
-    return () => window.removeEventListener("load", register);
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
   }, []);
 
   useEffect(() => {
