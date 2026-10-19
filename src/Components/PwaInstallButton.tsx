@@ -54,6 +54,7 @@ export default function PwaInstallButton() {
   const isMobile = useSyncExternalStore(subscribeIsMobile, getIsMobileSnapshot, getIsMobileServerSnapshot);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [justInstalled, setJustInstalled] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   const runPrompt = useCallback(async (event: BeforeInstallPromptEvent) => {
     try {
@@ -103,6 +104,7 @@ export default function PwaInstallButton() {
 
   const handleInstall = useCallback(() => {
     if (!promptEvent) {
+      setShowHint((current) => !current);
       return;
     }
 
@@ -111,6 +113,7 @@ export default function PwaInstallButton() {
     void runPrompt(event).then((didShow) => {
       if (!didShow) {
         setPromptEvent(event);
+        setShowHint(true);
       }
     });
   }, [promptEvent, runPrompt]);
@@ -120,15 +123,23 @@ export default function PwaInstallButton() {
   }
 
   if (isMobile) {
-    return promptEvent ? (
-      <button
-        type="button"
-        onClick={handleInstall}
-        className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
-      >
-        {t("pwa.install", "Install App")}
-      </button>
-    ) : null;
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={handleInstall}
+          className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
+        >
+          <MonitorDown className="h-4 w-4" />
+          {t("pwa.install", "Install App")}
+        </button>
+        {showHint ? (
+          <p className="max-w-xs text-center text-xs text-on-surface-variant">
+            {t("pwa.installHint", "Open your browser menu and choose \"Install app\" or \"Add to Home screen\".")}
+          </p>
+        ) : null}
+      </div>
+    );
   }
 
   return (
