@@ -184,14 +184,14 @@ export default function HeroSection({ siteConfig, skills, stats }: Readonly<Hero
                   onClick={() => setIsResumeModalOpen(true)}
                   className="rounded-full border border-outline-variant/30 px-4 py-2 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
                 >
-                  {t("hero.secondaryCta", "View Resume")}
+                  {t("hero.secondaryCta", "View CV")}
                 </button>
               ) : (
                 <Link
                   className="rounded-full border border-outline-variant/30 px-4 py-2 font-bold text-on-surface transition-all hover:bg-surface-container-highest"
                   href="#contact"
                 >
-                  {t("hero.secondaryCta", "View Resume")}
+                  {t("hero.secondaryCta", "View CV")}
                 </Link>
               )}
             </div>

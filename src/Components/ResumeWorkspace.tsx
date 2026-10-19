@@ -33,7 +33,7 @@ export default function ResumeWorkspace({ cvHref }: Readonly<ResumeWorkspaceProp
           </span>
           <div>
             <p className="mb-1 text-xs tracking-[0.2em] text-primary uppercase">Portfolio</p>
-            <h1 className="font-headline text-3xl font-black tracking-tight md:text-4xl">{t("nav.resume", "Resume")}</h1>
+            <h1 className="font-headline text-3xl font-black tracking-tight md:text-4xl">{t("nav.resume", "CV")}</h1>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ export default function ResumeWorkspace({ cvHref }: Readonly<ResumeWorkspaceProp
           <ResumePdfViewer
             file={cvHref ?? ""}
             labels={{
-              loading: t("nav.cvLoading", "Loading resume..."),
+              loading: t("nav.cvLoading", "Loading CV..."),
               error: t("nav.cvPreviewUnavailable", "CV preview is unavailable in this browser."),
               prevPage: t("nav.prevPage", "Previous page"),
               nextPage: t("nav.nextPage", "Next page"),

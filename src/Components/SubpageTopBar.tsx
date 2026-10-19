@@ -31,12 +31,11 @@ export default function SubpageTopBar({ language: languageFromServer }: Readonly
   const homeHref = `/?lang=${activeLanguage}`;
 
   const onGoBack = () => {
-    if (globalThis.history.length > 1) {
-      router.back();
-      return;
-    }
+    const segments = pathname.split("/").filter(Boolean);
+    segments.pop();
 
-    router.push(homeHref);
+    const parentPath = segments.length > 0 ? `/${segments.join("/")}` : "/";
+    router.push(`${parentPath}?lang=${activeLanguage}`);
   };
 
   const onToggleLanguage = () => {

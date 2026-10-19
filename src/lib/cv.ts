@@ -1,4 +1,4 @@
-export const RESUME_FILE_NAME = "Md. Sadat Alam Protik - Full Stack Developer Resume";
+export const RESUME_FILE_NAME = "Md. Sadat Alam Protik - Full Stack Developer CV";
 
 export function normalizeCvSource(raw: string | null | undefined): string | null {
   const value = raw?.trim() ?? "";

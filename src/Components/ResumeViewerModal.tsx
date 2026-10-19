@@ -88,7 +88,7 @@ export default function ResumeViewerModal({ isOpen, onClose, cvHref }: Readonly<
             <ResumePdfViewer
               file={cvHref ?? ""}
               labels={{
-                loading: t("nav.cvLoading", "Loading resume..."),
+                loading: t("nav.cvLoading", "Loading CV..."),
                 error: t("nav.cvPreviewUnavailable", "CV preview is unavailable in this browser."),
                 prevPage: t("nav.prevPage", "Previous page"),
                 nextPage: t("nav.nextPage", "Next page"),

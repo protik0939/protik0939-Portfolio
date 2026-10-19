@@ -17,6 +17,6 @@ export async function GET() {
       },
     );
   } catch {
-    return NextResponse.json({ error: "Unable to load the resume right now." }, { status: 500 });
+    return NextResponse.json({ error: "Unable to load the CV right now." }, { status: 500 });
   }
 }

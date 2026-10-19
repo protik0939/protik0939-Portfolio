@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronDown, Download, Languages, MoonStar, Sun } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, FileText, Languages, MoonStar, Sun } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppUI } from "@/Components/AppUIProvider";
-import { downloadResume, normalizeCvSource, RESUME_FILE_NAME } from "@/lib/cv";
 
 type TopBarSiteConfig = {
   siteTitleEn: string;
@@ -52,8 +52,8 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   const expertiseLabel = isBn ? "দক্ষতা" : "Expertise";
   const careerLabel = isBn ? "ক্যারিয়ার" : "Career";
   const contactLabel = siteConfig ? (isBn ? siteConfig.navContactBn : siteConfig.navContactEn) : t("nav.contact", "Contact");
-  const cvLabel = siteConfig ? (isBn ? siteConfig.navCvBn : siteConfig.navCvEn) : t("nav.downloadResume", "Download Resume");
-  const cvHref = useMemo(() => normalizeCvSource(siteConfig?.cvUrl), [siteConfig?.cvUrl]);
+  const cvLabel = siteConfig ? (isBn ? siteConfig.navCvBn : siteConfig.navCvEn) : t("nav.resume", "CV");
+  const cvRoute = `/cv?lang=${language}`;
 
   const clearDropdownTimer = useCallback(() => {
     if (!dropdownCloseTimer.current) {
@@ -69,15 +69,6 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
       setOpenDropdown(null);
     }, 160);
   }, [clearDropdownTimer]);
-
-  const handleCvDownload = useCallback(() => {
-    if (!cvHref) {
-      globalThis.location.hash = "#contact";
-      return;
-    }
-
-    downloadResume(cvHref, RESUME_FILE_NAME);
-  }, [cvHref]);
 
   const navPrimaryItems = useMemo<TopNavItem[]>(
     () => [
@@ -291,14 +282,13 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
             </button>
 
-            <button
-              type="button"
-              onClick={handleCvDownload}
+            <Link
+              href={cvRoute}
               className="hidden items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-medium text-on-primary-container transition-all duration-200 hover:brightness-110 active:scale-95 sm:inline-flex"
             >
-              <Download className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
               {cvLabel}
-            </button>
+            </Link>
           </div>
         </div>
 

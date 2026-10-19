@@ -49,8 +49,6 @@ const SECTION_LINKS: SectionLink[] = [
     fallback: "Education & Experience",
     icon: GraduationCap,
   },
-  { key: "projects", labelKey: "nav.projects", fallback: "Projects", icon: FolderKanban },
-  { key: "blogs", labelKey: "nav.blogs", fallback: "Blogs", icon: Newspaper },
   { key: "contact", labelKey: "nav.contact", fallback: "Contact", icon: Mail },
 ];
 
@@ -63,7 +61,7 @@ export default function MobileBottomNav() {
   const isHomePage = pathname === "/";
   const isHidden = pathname.startsWith("/admin");
 
-  const resumeHref = `/resume?lang=${language}`;
+  const cvHref = `/cv?lang=${language}`;
   useEffect(() => {
     if (!isSheetOpen || !isHomePage) {
       return;
@@ -100,7 +98,7 @@ export default function MobileBottomNav() {
 
   const tabs = useMemo<BottomNavTab[]>(
     () => [
-      { key: "resume", label: t("nav.resume", "Resume"), icon: FileText, href: `/resume?lang=${language}` },
+      { key: "cv", label: t("nav.resume", "CV"), icon: FileText, href: `/cv?lang=${language}` },
       { key: "projects", label: t("nav.projects", "Projects"), icon: FolderKanban, href: `/projects?lang=${language}` },
       { key: "home", label: t("nav.home", "Home"), icon: House },
       { key: "blogs", label: t("nav.blogs", "Blogs"), icon: Newspaper, href: `/blogs?lang=${language}` },
@@ -110,7 +108,7 @@ export default function MobileBottomNav() {
   );
 
   const routeIndex = useMemo(() => {
-    if (pathname.startsWith("/resume")) {
+    if (pathname.startsWith("/cv")) {
       return 0;
     }
 
@@ -138,8 +136,8 @@ export default function MobileBottomNav() {
       return activeSectionId;
     }
 
-    if (pathname.startsWith("/resume")) {
-      return "resume";
+    if (pathname.startsWith("/cv")) {
+      return "cv";
     }
 
     if (pathname.startsWith("/projects")) {
@@ -153,27 +151,49 @@ export default function MobileBottomNav() {
     return "";
   }, [activeSectionId, isHomePage, pathname]);
 
-  const sheetTiles = useMemo<MobileQuickNavTile[]>(
-    () => [
-      ...SECTION_LINKS.map((item) => ({
-        key: item.key,
-        label: t(item.labelKey, item.fallback),
-        icon: item.icon,
-        href: isHomePage ? `#${item.key}` : `/?lang=${language}#${item.key}`,
-        isActive: activeSectionKey === item.key,
-      })),
+  const sheetTiles = useMemo<MobileQuickNavTile[]>(() => {
+    const tiles: MobileQuickNavTile[] = [];
+
+    if (isHomePage) {
+      tiles.push(
+        ...SECTION_LINKS.map((item) => ({
+          key: item.key,
+          label: t(item.labelKey, item.fallback),
+          icon: item.icon,
+          href: `#${item.key}`,
+          isActive: activeSectionKey === item.key,
+        })),
+      );
+    }
+
+    tiles.push(
       {
-        key: "resume",
-        label: t("nav.resume", "Resume"),
+        key: "projects",
+        label: t("nav.projects", "Projects"),
+        icon: FolderKanban,
+        href: `/projects?lang=${language}`,
+        isActive: activeSectionKey === "projects",
+      },
+      {
+        key: "blogs",
+        label: t("nav.blogs", "Blogs"),
+        icon: Newspaper,
+        href: `/blogs?lang=${language}`,
+        isActive: activeSectionKey === "blogs",
+      },
+      {
+        key: "cv",
+        label: t("nav.resume", "CV"),
         icon: FileText,
-        href: resumeHref,
-        isActive: activeSectionKey === "resume",
+        href: cvHref,
+        isActive: activeSectionKey === "cv",
       },
       { key: "language", label: t("nav.language", "Language"), icon: Languages, onClick: toggleLanguage },
       { key: "theme", label: t("nav.theme", "Theme"), icon: theme === "dark" ? Sun : MoonStar, onClick: toggleTheme },
-    ],
-    [activeSectionKey, isHomePage, language, resumeHref, t, theme, toggleLanguage, toggleTheme],
-  );
+    );
+
+    return tiles;
+  }, [activeSectionKey, cvHref, isHomePage, language, t, theme, toggleLanguage, toggleTheme]);
 
   const handleTabClick = useCallback(
     (tab: BottomNavTab, event: ReactMouseEvent<HTMLAnchorElement>) => {

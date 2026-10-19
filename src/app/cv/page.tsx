@@ -7,18 +7,18 @@ import { getSiteConfig, pickLocalized } from "@/lib/public-content";
 import { resolveRequestLanguage } from "@/lib/request-language";
 import { pickSeoDescription } from "@/lib/site-url";
 
-type ResumePageProps = {
+type CvPageProps = {
   searchParams: Promise<{ lang?: string }>;
 };
 
-export async function generateMetadata({ searchParams }: ResumePageProps): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: CvPageProps): Promise<Metadata> {
   const params = await searchParams;
   const language = await resolveRequestLanguage(params.lang);
   const siteConfig = await getSiteConfig();
-  const title = "Resume";
+  const title = "CV";
 
   return {
-    alternates: { canonical: "/resume" },
+    alternates: { canonical: "/cv" },
     title: siteConfig ? `${title} | ${pickLocalized(language, siteConfig.siteTitleEn, siteConfig.siteTitleBn)}` : title,
     description: pickSeoDescription(
       siteConfig ? pickLocalized(language, siteConfig.siteDescriptionEn, siteConfig.siteDescriptionBn) : "",
@@ -26,7 +26,7 @@ export async function generateMetadata({ searchParams }: ResumePageProps): Promi
   };
 }
 
-export default async function ResumePage({ searchParams }: ResumePageProps) {
+export default async function CvPage({ searchParams }: CvPageProps) {
   const params = await searchParams;
   const language = await resolveRequestLanguage(params.lang);
   const siteConfig = await getSiteConfig();
