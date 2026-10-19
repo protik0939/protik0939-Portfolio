@@ -146,7 +146,10 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
 
   return (
     <>
-      <header className="fixed top-0 z-50 h-20 w-full border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-lg sm:px-6 lg:px-8">
+      <header
+        style={{ top: "var(--offline-banner-offset, 0px)" }}
+        className="fixed z-50 h-20 w-full border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-lg transition-[top] duration-300 ease-out sm:px-6 lg:px-8"
+      >
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-3">
           <div className="max-w-44 truncate font-headline text-lg font-black tracking-tighter text-on-surface sm:max-w-none sm:text-xl">
             {brandLabel}

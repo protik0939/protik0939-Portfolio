@@ -58,19 +58,6 @@ export default function PwaInstallButton() {
   const [justInstalled, setJustInstalled] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  const runPrompt = useCallback(async (event: BeforeInstallPromptEvent) => {
-    try {
-      await event.prompt();
-      const choice = await event.userChoice;
-      if (choice.outcome === "accepted") {
-        setJustInstalled(true);
-      }
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
   // Store the install prompt event without triggering it prematurely.
   // Chrome on Android and Desktop strictly requires a user gesture (click/tap)
   // to invoke event.prompt(). Calling it automatically causes Chrome to reject
@@ -107,10 +94,6 @@ export default function PwaInstallButton() {
     window.addEventListener("pwa-install-ready", handleInstallReady);
     window.addEventListener("appinstalled", handleInstalled);
 
-    // If inline script already captured the prompt before React hydration:
-    if (win.__deferredInstallPrompt) {
-      adoptEvent(win.__deferredInstallPrompt);
-    }
     const adoptTimer = window.setTimeout(handleInstallReady, 0);
 
     return () => {

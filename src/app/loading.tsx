@@ -6,7 +6,10 @@ export default function Loading() {
       <AnimatedBackgroundGlow />
       <main className="relative z-10 min-h-screen overflow-hidden">
         <div className="animate-pulse">
-        <header className="fixed top-0 z-50 flex h-20 w-full items-center justify-between border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-8 backdrop-blur-lg">
+        <header
+          style={{ top: "var(--offline-banner-offset, 0px)" }}
+          className="fixed z-50 flex h-20 w-full items-center justify-between border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-8 backdrop-blur-lg transition-[top] duration-300 ease-out"
+        >
           <div className="h-6 w-44 rounded-full bg-surface-container-high" />
           <div className="hidden gap-4 md:flex">
             {Array.from({ length: 5 }).map((_, index) => (

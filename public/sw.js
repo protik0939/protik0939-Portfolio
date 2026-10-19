@@ -1,5 +1,5 @@
-/* Service worker for the portfolio PWA: offline support + background sync. */
-const VERSION = "v2";
+/* Service worker for the portfolio PWA: offline support + background sync + WiFi pre-caching. */
+const VERSION = "v3";
 const PAGES_CACHE = `portfolio-pages-${VERSION}`;
 const ASSETS_CACHE = `portfolio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -8,11 +8,14 @@ const PRECACHE_ASSETS = [
   "/manifest.webmanifest",
   "/manifest.json",
   "/favicon.svg",
+  "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png",
   "/icon-maskable-192.png",
   "/icon-maskable-512.png",
   "/apple-touch-icon.png",
+  "/locales/en.json",
+  "/locales/bn.json",
 ];
 
 self.addEventListener("install", (event) => {
@@ -51,6 +54,11 @@ self.addEventListener("message", (event) => {
 
   if (event.data === "REFRESH_CACHE") {
     event.waitUntil(refreshCoreCache());
+    return;
+  }
+
+  if (event.data && typeof event.data === "object" && event.data.type === "PRECACHE_ALL") {
+    event.waitUntil(precacheFullSite(event.data.routes || [], event.data.images || []));
   }
 });
 
@@ -66,6 +74,71 @@ async function refreshCoreCache() {
   await cache.add(new Request("/", { cache: "reload" })).catch(() => {});
 }
 
+async function precacheFullSite(routes, images) {
+  const pagesCache = await caches.open(PAGES_CACHE);
+  const assetsCache = await caches.open(ASSETS_CACHE);
+
+  // Helper to run promises in concurrent chunks
+  async function runInPool(items, limit, fn) {
+    const results = [];
+    const executing = [];
+    for (const item of items) {
+      const p = Promise.resolve().then(() => fn(item));
+      results.push(p);
+      if (limit <= items.length) {
+        const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+        executing.push(e);
+        if (executing.length >= limit) {
+          await Promise.race(executing);
+        }
+      }
+    }
+    return Promise.allSettled(results);
+  }
+
+  // Pre-cache all site routes (including en/bn variants)
+  const fullRouteList = [];
+  for (const route of routes) {
+    fullRouteList.push(route);
+    if (!route.includes("?")) {
+      fullRouteList.push(`${route}?lang=en`);
+      fullRouteList.push(`${route}?lang=bn`);
+    }
+  }
+
+  await runInPool(fullRouteList, 4, async (route) => {
+    try {
+      const req = new Request(route, { cache: "reload", credentials: "same-origin" });
+      const res = await fetch(req);
+      if (res && res.status === 200) {
+        await pagesCache.put(req, res);
+      }
+    } catch {
+      // Continue even if single route fetch fails
+    }
+  });
+
+  // Pre-cache all image and media assets
+  await runInPool(images, 6, async (imageUrl) => {
+    try {
+      const isCrossOrigin = /^https?:\/\//i.test(imageUrl) && !imageUrl.startsWith(self.location.origin);
+      const req = new Request(imageUrl, isCrossOrigin ? { mode: "no-cors" } : { cache: "reload" });
+      const res = await fetch(req);
+      if (res && (res.status === 200 || res.type === "opaque")) {
+        await assetsCache.put(imageUrl, res);
+      }
+    } catch {
+      // Continue even if single asset fails
+    }
+  });
+
+  // Notify clients that WiFi pre-cache has completed
+  const allClients = await self.clients.matchAll();
+  for (const client of allClients) {
+    client.postMessage({ type: "PRECACHE_COMPLETED", timestamp: Date.now() });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") {
@@ -73,7 +146,15 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(request.url);
+
+  // Cross-origin image caching
   if (url.origin !== self.location.origin) {
+    if (
+      request.destination === "image" ||
+      /\.(?:png|jpe?g|gif|svg|webp|avif|ico)$/i.test(url.pathname)
+    ) {
+      event.respondWith(staleWhileRevalidate(request, ASSETS_CACHE));
+    }
     return;
   }
 
@@ -84,6 +165,13 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(handleNavigation(request));
+    return;
+  }
+
+  // Next.js client-side navigation / RSC requests
+  const isRsc = request.headers.get("rsc") === "1" || url.searchParams.has("_rsc");
+  if (isRsc) {
+    event.respondWith(staleWhileRevalidate(request, PAGES_CACHE));
     return;
   }
 
@@ -153,7 +241,7 @@ async function staleWhileRevalidate(request, cacheName) {
 
   const networkPromise = fetch(request)
     .then((response) => {
-      if (response && response.status === 200) {
+      if (response && (response.status === 200 || response.type === "opaque")) {
         cache.put(request, response.clone());
       }
       return response;
@@ -165,5 +253,21 @@ async function staleWhileRevalidate(request, cacheName) {
   }
 
   const network = await networkPromise;
-  return network || new Response("", { status: 504 });
+  if (network) {
+    return network;
+  }
+
+  // Fallback for Next.js image optimization URLs if offline
+  const reqUrl = typeof request === "string" ? new URL(request, self.location.origin) : new URL(request.url);
+  if (reqUrl.pathname.startsWith("/_next/image")) {
+    const rawTarget = reqUrl.searchParams.get("url");
+    if (rawTarget) {
+      const fallback = (await cache.match(rawTarget)) || (await cache.match(new Request(rawTarget)));
+      if (fallback) {
+        return fallback;
+      }
+    }
+  }
+
+  return new Response("", { status: 504 });
 }
