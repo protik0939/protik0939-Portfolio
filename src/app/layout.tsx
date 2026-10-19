@@ -91,6 +91,13 @@ export default async function RootLayout({
   return (
     <html lang={language} className={`${poppins.variable} ${hindSiliguri.variable} antialiased dark`} suppressHydrationWarning>
       <body className="flex min-h-screen flex-col" suppressHydrationWarning>
+        {/* Captures beforeinstallprompt before React hydrates, so the event is never lost. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__deferredInstallPrompt=e;window.dispatchEvent(new CustomEvent('pwa-install-ready'));});}catch(err){}})();",
+          }}
+        />
         <AppUIProvider>
           {children}
           <MobileBottomNav />
