@@ -56,6 +56,7 @@ export default function PwaInstallButton() {
   const isMobile = useSyncExternalStore(subscribeIsMobile, getIsMobileSnapshot, getIsMobileServerSnapshot);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [justInstalled, setJustInstalled] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   const runPrompt = useCallback(async (event: BeforeInstallPromptEvent) => {
     try {
@@ -119,6 +120,7 @@ export default function PwaInstallButton() {
 
   const handleInstall = useCallback(() => {
     if (!promptEvent) {
+      setShowHint((current) => !current);
       return;
     }
 
@@ -127,35 +129,47 @@ export default function PwaInstallButton() {
     void runPrompt(event).then((didShow) => {
       if (!didShow) {
         setPromptEvent(event);
+        setShowHint(true);
       }
     });
   }, [promptEvent, runPrompt]);
+
+  const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const hintText = isIos
+    ? t("pwa.iosInstallHint", "Tap Share, then choose \"Add to Home Screen\".")
+    : t("pwa.installHint", "Open your browser menu and choose \"Install app\" or \"Add to Home screen\".");
 
   if (isStandalone || justInstalled) {
     return null;
   }
 
   if (isMobile) {
-    return promptEvent ? (
-      <button
-        type="button"
-        onClick={handleInstall}
-        className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
-      >
-        <MonitorDown className="h-4 w-4" />
-        {t("pwa.install", "Install App")}
-      </button>
-    ) : null;
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={handleInstall}
+          className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
+        >
+          <MonitorDown className="h-4 w-4" />
+          {t("pwa.install", "Install App")}
+        </button>
+        {showHint ? <p className="max-w-xs text-center text-xs text-on-surface-variant">{hintText}</p> : null}
+      </div>
+    );
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleInstall}
-      className="flex max-w-xs items-center gap-2 text-center text-xs text-on-surface-variant transition hover:text-on-surface md:text-right"
-    >
-      <MonitorDown className="h-5 w-5 shrink-0 text-primary" />
-      <span>{t("pwa.desktopHint", "Tap the icon for installing the app (Only works on supported browser)")}</span>
-    </button>
+    <div className="flex flex-col items-end gap-2">
+      <button
+        type="button"
+        onClick={handleInstall}
+        className="flex max-w-xs items-center gap-2 text-center text-xs text-on-surface-variant transition hover:text-on-surface md:text-right"
+      >
+        <MonitorDown className="h-5 w-5 shrink-0 text-primary" />
+        <span>{t("pwa.desktopHint", "Tap the icon for installing the app (Only works on supported browser)")}</span>
+      </button>
+      {showHint ? <p className="max-w-xs text-right text-xs text-on-surface-variant">{hintText}</p> : null}
+    </div>
   );
 }
