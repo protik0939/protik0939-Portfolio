@@ -8,7 +8,7 @@ export default function Loading() {
         <div className="animate-pulse">
         <header
           style={{ top: "var(--offline-banner-offset, 0px)" }}
-          className="fixed z-50 flex h-20 w-full items-center justify-between border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-8 backdrop-blur-lg transition-[top] duration-300 ease-out"
+          className="fixed inset-x-0 z-50 flex h-20 w-full items-center justify-between border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-8 backdrop-blur-lg transition-all duration-300 ease-out"
         >
           <div className="h-6 w-44 rounded-full bg-surface-container-high" />
           <div className="hidden gap-4 md:flex">

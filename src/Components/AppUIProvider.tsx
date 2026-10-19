@@ -11,6 +11,8 @@ type AppUIContextValue = {
   toggleTheme: () => void;
   toggleLanguage: () => void;
   t: (key: string, fallback: string) => string;
+  isOfflineBannerVisible: boolean;
+  setIsOfflineBannerVisible: (visible: boolean) => void;
 };
 
 const AppUIContext = createContext<AppUIContextValue | null>(null);
@@ -20,6 +22,7 @@ export function AppUIProvider({ children }: Readonly<{ children: React.ReactNode
   const [language, setLanguage] = useState<LanguageCode>("en");
   const [isPreferenceHydrated, setIsPreferenceHydrated] = useState(false);
   const [dictionary, setDictionary] = useState<Record<string, string>>({});
+  const [isOfflineBannerVisible, setIsOfflineBannerVisible] = useState(false);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("portfolio-theme");
@@ -99,6 +102,8 @@ export function AppUIProvider({ children }: Readonly<{ children: React.ReactNode
 
       return translated;
     },
+    isOfflineBannerVisible,
+    setIsOfflineBannerVisible,
   };
 
   return <AppUIContext.Provider value={contextValue}>{children}</AppUIContext.Provider>;

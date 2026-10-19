@@ -1,5 +1,5 @@
 /* Service worker for the portfolio PWA: offline support + background sync + WiFi pre-caching. */
-const VERSION = "v3";
+const VERSION = "v4";
 const PAGES_CACHE = `portfolio-pages-${VERSION}`;
 const ASSETS_CACHE = `portfolio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -168,10 +168,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Next.js client-side navigation / RSC requests
+  // Next.js client-side navigation / RSC requests: always fetch fresh over network
   const isRsc = request.headers.get("rsc") === "1" || url.searchParams.has("_rsc");
   if (isRsc) {
-    event.respondWith(staleWhileRevalidate(request, PAGES_CACHE));
+    event.respondWith(handleRscRequest(request));
     return;
   }
 
@@ -189,6 +189,15 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(staleWhileRevalidate(request, ASSETS_CACHE));
   }
 });
+
+async function handleRscRequest(request) {
+  try {
+    const response = await fetch(request);
+    return response;
+  } catch {
+    return new Response("", { status: 504 });
+  }
+}
 
 async function handleNavigation(request) {
   const cache = await caches.open(PAGES_CACHE);

@@ -34,7 +34,7 @@ type TopNavItem = {
 };
 
 export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
-  const { language, theme, t, toggleLanguage, toggleTheme } = useAppUI();
+  const { language, theme, t, toggleLanguage, toggleTheme, isOfflineBannerVisible } = useAppUI();
   const [activeSectionId, setActiveSectionId] = useState("home");
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const dropdownCloseTimer = useRef<number | null>(null);
@@ -147,8 +147,10 @@ export default function TopAppBar({ siteConfig }: Readonly<TopAppBarProps>) {
   return (
     <>
       <header
-        style={{ top: "var(--offline-banner-offset, 0px)" }}
-        className="fixed z-50 h-20 w-full border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-lg transition-[top] duration-300 ease-out sm:px-6 lg:px-8"
+        style={{ top: isOfflineBannerVisible ? "32px" : "0px" }}
+        className={`fixed inset-x-0 z-50 h-20 w-full border-b border-outline-variant/30 bg-linear-to-b from-background/85 to-background/35 px-4 shadow-[0_8px_32px_0_rgba(0,0,0,0.15)] backdrop-blur-lg transition-all duration-300 ease-out sm:px-6 lg:px-8 ${
+          isOfflineBannerVisible ? "top-8" : "top-0"
+        }`}
       >
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between gap-3">
           <div className="max-w-44 truncate font-headline text-lg font-black tracking-tighter text-on-surface sm:max-w-none sm:text-xl">

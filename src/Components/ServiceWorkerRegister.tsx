@@ -17,8 +17,8 @@ type NetworkInformation = EventTarget & {
   removeEventListener?: (type: string, listener: EventListenerOrEventListenerObject) => void;
 };
 
-const BANNER_HEIGHT_PX = "28px";
-const PRECACHE_STORAGE_KEY = "portfolio_wifi_precached_v3";
+const BANNER_HEIGHT_PX = "32px";
+const PRECACHE_STORAGE_KEY = "portfolio_wifi_precached_v4";
 const PRECACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function isWifiConnection(): boolean {
@@ -34,7 +34,7 @@ function isWifiConnection(): boolean {
   if (!conn) {
     // If Network Information API is not supported (Safari/Firefox/desktop),
     // default to eligible when online unless navigator.onLine is false.
-    return navigator.onLine;
+    return navigator.onLine !== false;
   }
 
   if (conn.saveData) {
@@ -50,41 +50,40 @@ function isWifiConnection(): boolean {
 }
 
 export default function ServiceWorkerRegister() {
-  const { t } = useAppUI();
+  const { t, setIsOfflineBannerVisible } = useAppUI();
   const router = useRouter();
 
-  // Banner state: "idle" | "offline" | "back-online"
-  const [bannerMode, setBannerMode] = useState<"idle" | "offline" | "back-online">(() =>
-    typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "idle",
-  );
+  // Banner state: always starts "idle" on page load so it never falsely flashes "offline"
+  const [bannerMode, setBannerMode] = useState<"idle" | "offline" | "back-online">("idle");
   const [isHiding, setIsHiding] = useState(false);
 
-  const wasOffline = useRef(typeof navigator !== "undefined" && !navigator.onLine);
+  const wasOffline = useRef(false);
   const hideTimer = useRef<number | null>(null);
   const finishHideTimer = useRef<number | null>(null);
   const syncTimer = useRef<number | null>(null);
 
-  // Sync banner offset CSS property on <html> so TopAppBar and body never get covered
+  // Sync banner offset CSS property on <html> and update React state so TopAppBar shifts down
   useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
+    const isVisible = bannerMode !== "idle" && !isHiding;
+    setIsOfflineBannerVisible(isVisible);
 
-    if (bannerMode === "idle" || isHiding) {
-      document.documentElement.style.setProperty("--offline-banner-offset", "0px");
-    } else {
-      document.documentElement.style.setProperty("--offline-banner-offset", BANNER_HEIGHT_PX);
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty(
+        "--offline-banner-offset",
+        isVisible ? BANNER_HEIGHT_PX : "0px",
+      );
     }
-  }, [bannerMode, isHiding]);
+  }, [bannerMode, isHiding, setIsOfflineBannerVisible]);
 
   // Clean up CSS custom property on unmount
   useEffect(() => {
     return () => {
+      setIsOfflineBannerVisible(false);
       if (typeof document !== "undefined") {
         document.documentElement.style.setProperty("--offline-banner-offset", "0px");
       }
     };
-  }, []);
+  }, [setIsOfflineBannerVisible]);
 
   // Register service worker on mount & handle WiFi whole-site pre-caching
   useEffect(() => {
@@ -157,7 +156,7 @@ export default function ServiceWorkerRegister() {
       }
     };
 
-    // Attempt precache immediately if already on WiFi
+    // Attempt precache immediately if on WiFi
     void triggerWifiPrecache();
 
     // Listen for network connection changes (e.g., user connects to WiFi later)
@@ -178,9 +177,34 @@ export default function ServiceWorkerRegister() {
     };
   }, []);
 
-  // Online / offline transition management
+  // Online / offline transition management with real network probe validation
   useEffect(() => {
-    const handleOffline = () => {
+    let isCancelled = false;
+
+    // Probe the server to confirm true offline status (guards against false positives)
+    const checkRealConnectivity = async (): Promise<boolean> => {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        return true;
+      }
+
+      try {
+        const probe = await fetch("/favicon.svg?_probe=" + Date.now(), {
+          method: "HEAD",
+          cache: "no-store",
+        });
+        return probe.ok || probe.status < 500;
+      } catch {
+        return false;
+      }
+    };
+
+    const handleOffline = async () => {
+      // Guard against momentary blips by verifying true connectivity
+      const reachable = await checkRealConnectivity();
+      if (isCancelled || reachable) {
+        return;
+      }
+
       if (hideTimer.current) {
         window.clearTimeout(hideTimer.current);
         hideTimer.current = null;
@@ -206,6 +230,8 @@ export default function ServiceWorkerRegister() {
       }
 
       if (!wasOffline.current) {
+        // Was never actually offline; stay idle
+        setBannerMode("idle");
         return;
       }
 
@@ -238,9 +264,21 @@ export default function ServiceWorkerRegister() {
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
 
+    // Periodic safety check: if offline banner is active but internet has returned, automatically recover
+    const interval = window.setInterval(async () => {
+      if (wasOffline.current) {
+        const reachable = await checkRealConnectivity();
+        if (reachable) {
+          handleOnline();
+        }
+      }
+    }, 3500);
+
     return () => {
+      isCancelled = true;
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      window.clearInterval(interval);
       if (syncTimer.current) {
         window.clearTimeout(syncTimer.current);
       }
@@ -263,7 +301,7 @@ export default function ServiceWorkerRegister() {
     <aside
       role="status"
       aria-live="polite"
-      className={`fixed inset-x-0 top-0 z-100 flex h-[28px] w-full items-center justify-center px-4 font-headline text-xs font-semibold tracking-wide text-white shadow-md transition-all duration-300 ease-out select-none ${
+      className={`fixed inset-x-0 top-0 z-[100] flex h-8 w-full items-center justify-center px-4 font-headline text-xs font-semibold tracking-wide text-white shadow-md transition-all duration-300 ease-out select-none ${
         isBackOnline ? "bg-emerald-600 dark:bg-emerald-600" : "bg-red-600 dark:bg-red-600"
       } ${isHiding ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"}`}
     >
