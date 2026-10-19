@@ -38,6 +38,7 @@
   "footer.twitter": "Twitter",
   "footer.facebook": "Facebook",
   "pwa.install": "Instalar aplicación",
+  "pwa.desktopHint": "Toca el icono para instalar la aplicación (solo funciona en navegadores compatibles)",
   "pwa.installHint": "Abre el menú del navegador y elige \"Instalar aplicación\" o \"Añadir a pantalla de inicio\".",
   "pwa.iosInstallHint": "Toca Compartir y luego \"Añadir a pantalla de inicio\".",
   "pwa.offline": "Sin conexión. Mostrando contenido guardado.",

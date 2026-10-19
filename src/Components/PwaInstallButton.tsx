@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Download, Share, Smartphone } from "lucide-react";
+import { MonitorDown } from "lucide-react";
 import { useAppUI } from "@/Components/AppUIProvider";
 
 type BeforeInstallPromptEvent = Event & {
@@ -36,23 +36,60 @@ function getStandaloneServerSnapshot() {
   return false;
 }
 
+function subscribeIsMobile() {
+  return () => {};
+}
+
+function getIsMobileSnapshot() {
+  return /android|iphone|ipad|ipod|iemobile|opera mini|mobile/i.test(navigator.userAgent);
+}
+
+function getIsMobileServerSnapshot() {
+  return false;
+}
+
 export default function PwaInstallButton() {
   const { t } = useAppUI();
   const isStandalone = useSyncExternalStore(subscribeDisplayMode, getStandaloneSnapshot, getStandaloneServerSnapshot);
+  const isMobile = useSyncExternalStore(subscribeIsMobile, getIsMobileSnapshot, getIsMobileServerSnapshot);
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [justInstalled, setJustInstalled] = useState(false);
-  const [showHint, setShowHint] = useState(false);
+
+  const runPrompt = useCallback(async (event: BeforeInstallPromptEvent) => {
+    try {
+      await event.prompt();
+      const choice = await event.userChoice;
+      if (choice.outcome === "accepted") {
+        setJustInstalled(true);
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstall = (event: Event) => {
+      const installEvent = event as BeforeInstallPromptEvent;
       event.preventDefault();
-      setPromptEvent(event as BeforeInstallPromptEvent);
+
+      // On mobile, automatically trigger Chrome's native install dialog.
+      if (getIsMobileSnapshot()) {
+        void runPrompt(installEvent).then((didShow) => {
+          // Keep the event around for a manual retry button if the auto prompt failed.
+          if (!didShow) {
+            setPromptEvent(installEvent);
+          }
+        });
+        return;
+      }
+
+      setPromptEvent(installEvent);
     };
 
     const handleInstalled = () => {
       setJustInstalled(true);
       setPromptEvent(null);
-      setShowHint(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -62,47 +99,42 @@ export default function PwaInstallButton() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleInstalled);
     };
-  }, []);
+  }, [runPrompt]);
 
-  const isIos = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
-
-  const handleInstall = useCallback(async () => {
-    if (promptEvent) {
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      if (choice.outcome === "accepted") {
-        setJustInstalled(true);
-      }
-      setPromptEvent(null);
+  const handleInstall = useCallback(() => {
+    if (!promptEvent) {
       return;
     }
 
-    setShowHint((current) => !current);
-  }, [promptEvent]);
+    const event = promptEvent;
+    setPromptEvent(null);
+    void runPrompt(event).then((didShow) => {
+      if (!didShow) {
+        setPromptEvent(event);
+      }
+    });
+  }, [promptEvent, runPrompt]);
 
   if (isStandalone || justInstalled) {
     return null;
   }
 
-  return (
-    <div className="flex flex-col items-center gap-2 md:items-end">
+  if (isMobile) {
+    return promptEvent ? (
       <button
         type="button"
         onClick={handleInstall}
         className="inline-flex items-center gap-2 rounded-full bg-primary-container px-5 py-2.5 text-sm font-semibold text-on-primary-container transition hover:brightness-110 active:scale-95"
       >
-        <Download className="h-4 w-4" />
         {t("pwa.install", "Install App")}
       </button>
+    ) : null;
+  }
 
-      {showHint ? (
-        <p className="flex items-center gap-1.5 text-center text-xs text-on-surface-variant md:text-right">
-          {isIos ? <Share className="h-3.5 w-3.5 shrink-0" /> : <Smartphone className="h-3.5 w-3.5 shrink-0" />}
-          {isIos
-            ? t("pwa.iosInstallHint", "Tap Share, then choose \"Add to Home Screen\".")
-            : t("pwa.installHint", "Open your browser menu and choose \"Install app\" or \"Add to Home screen\".")}
-        </p>
-      ) : null}
+  return (
+    <div className="flex max-w-xs items-center gap-2 text-center text-xs text-on-surface-variant md:text-right">
+      <MonitorDown className="h-5 w-5 shrink-0 text-primary" />
+      <span>{t("pwa.desktopHint", "Tap the icon for installing the app (Only works on supported browser)")}</span>
     </div>
   );
 }
