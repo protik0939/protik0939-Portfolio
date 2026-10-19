@@ -2,6 +2,7 @@
 
 import AnimatedReveal from "@/Components/AnimatedReveal";
 import { useAppUI } from "@/Components/AppUIProvider";
+import PwaInstallButton from "@/Components/PwaInstallButton";
 import Link from "next/link";
 
 export default function SiteFooter() {
@@ -22,6 +23,7 @@ export default function SiteFooter() {
           <Link className="cursor-pointer text-on-surface-variant transition hover:text-primary hover:opacity-90" target="_blank" href="mailto:protik0939@gmail.com">protik0939@gmail.com</Link>
           <Link className="cursor-pointer text-on-surface-variant transition hover:text-primary hover:opacity-90" target="_blank" href="tel:+8801721846361">+880 1721 846361</Link>
         </div>
+        <PwaInstallButton />
       </AnimatedReveal>
     </footer>
   );

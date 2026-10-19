@@ -88,5 +88,13 @@
   "footer.github": "GitHub",
   "footer.linkedin": "LinkedIn",
   "footer.twitter": "Twitter",
-  "footer.facebook": "Facebook"
+  "footer.facebook": "Facebook",
+  "pwa.install": "Install App",
+  "pwa.installHint": "Open your browser menu and choose \"Install app\" or \"Add to Home screen\".",
+  "pwa.iosInstallHint": "Tap Share, then choose \"Add to Home Screen\".",
+  "pwa.offline": "You're offline. Showing saved content.",
+  "pwa.online": "Back online — syncing…",
+  "pwa.offlineTitle": "You're offline",
+  "pwa.offlineMessage": "This page isn't available right now. Check your connection and try again — everything reconnects automatically once you're back online.",
+  "pwa.retry": "Try again"
 }

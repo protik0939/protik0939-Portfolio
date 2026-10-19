@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Hind_Siliguri, Poppins } from "next/font/google";
 import { AppUIProvider } from "@/Components/AppUIProvider";
 import MobileBottomNav from "@/Components/MobileBottomNav";
+import ServiceWorkerRegister from "@/Components/ServiceWorkerRegister";
 import { resolveRequestLanguage } from "@/lib/request-language";
 import { DEFAULT_SITE_DESCRIPTION, getSiteUrl, SITE_NAME } from "@/lib/site-url";
 import "./globals.css";
@@ -32,6 +33,12 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
@@ -87,6 +94,7 @@ export default async function RootLayout({
         <AppUIProvider>
           {children}
           <MobileBottomNav />
+          <ServiceWorkerRegister />
         </AppUIProvider>
       </body>
     </html>
