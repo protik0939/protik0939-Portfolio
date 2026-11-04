@@ -93,6 +93,7 @@ export default async function RootLayout({
     <html lang={language} className={`${poppins.variable} ${hindSiliguri.variable} antialiased dark`} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="google-site-verification" content="eIF-DBTlpUgbA88_sV07lhJiT8iX_luc8VqUGSfG8lc" />
         <meta name="theme-color" content="#0e0e0e" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
